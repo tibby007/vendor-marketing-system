@@ -42,33 +42,17 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Check if trying to access protected route without auth
-  if (protectedPaths.some(path => pathname.startsWith(path)) && !user) {
+  const isProtectedRoute = protectedPaths.some(path => pathname.startsWith(path))
+  const isAdminRoute = adminPaths.some(path => pathname.startsWith(path))
+
+  if ((isProtectedRoute || isAdminRoute) && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
   }
 
-  // Check if trying to access admin route
-  if (adminPaths.some(path => pathname.startsWith(path))) {
-    if (!user) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-
-    // Check if user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('is_admin')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile?.is_admin) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/dashboard'
-      return NextResponse.redirect(url)
-    }
-  }
+  // Note: Admin role check is handled in the (admin) layout, not middleware
+  // This avoids RLS issues with querying profiles in middleware context
 
   // Redirect authenticated users away from auth pages
   if (authPaths.some(path => pathname.startsWith(path)) && user) {
