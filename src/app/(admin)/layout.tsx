@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { LayoutDashboard, Users, ArrowLeft } from 'lucide-react'
@@ -19,8 +20,9 @@ export default async function AdminLayout({
     redirect('/login')
   }
 
-  // Check if user is admin
-  const { data: profile } = await supabase
+  // Check if user is admin using admin client to bypass RLS
+  const adminClient = createAdminClient()
+  const { data: profile } = await adminClient
     .from('profiles')
     .select('is_admin')
     .eq('id', user.id)
