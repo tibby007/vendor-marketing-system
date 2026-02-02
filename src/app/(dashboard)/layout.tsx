@@ -29,6 +29,7 @@ export default async function DashboardLayout({
     full_name: profile?.full_name,
     company_name: profile?.company_name,
     subscription_tier: profile?.subscription_tier || 'free',
+    is_admin: profile?.is_admin || false,
   }
 
   return (

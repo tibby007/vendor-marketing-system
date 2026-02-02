@@ -14,6 +14,7 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from 'lucide-react'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -40,10 +41,11 @@ interface SidebarProps {
     full_name?: string | null
     company_name?: string | null
     subscription_tier?: string
+    is_admin?: boolean
   }
 }
 
-function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) {
+function NavLinks({ pathname, onNavigate, isAdmin }: { pathname: string; onNavigate?: () => void; isAdmin?: boolean }) {
   return (
     <>
       <nav className="flex-1 px-4 py-6 space-y-1">
@@ -88,6 +90,21 @@ function NavLinks({ pathname, onNavigate }: { pathname: string; onNavigate?: () 
             </Link>
           )
         })}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            onClick={onNavigate}
+            className={cn(
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+              pathname.startsWith('/admin')
+                ? 'bg-red-100 text-red-700'
+                : 'text-red-600 hover:bg-red-50 hover:text-red-700'
+            )}
+          >
+            <Shield className={cn('h-5 w-5', pathname.startsWith('/admin') ? 'text-red-600' : 'text-red-400')} />
+            Admin Dashboard
+          </Link>
+        )}
       </div>
     </>
   )
@@ -125,7 +142,7 @@ export function Sidebar({ user }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <NavLinks pathname={pathname} onNavigate={onNavigate} />
+      <NavLinks pathname={pathname} onNavigate={onNavigate} isAdmin={user.is_admin} />
 
       {/* User info & Logout */}
       <div className="px-4 py-4 border-t">
