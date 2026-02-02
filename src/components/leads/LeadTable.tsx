@@ -23,6 +23,7 @@ import { MoreHorizontal, Mail, Edit, Trash2, Eye } from 'lucide-react'
 import { LEAD_STATUSES } from '@/lib/constants'
 import { formatDistanceToNow } from 'date-fns'
 import { EditLeadDialog } from './EditLeadDialog'
+import { EmailModal } from './EmailModal'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
@@ -34,6 +35,7 @@ interface LeadTableProps {
 export function LeadTable({ leads, onUpdate }: LeadTableProps) {
   const { toast } = useToast()
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
+  const [emailingLead, setEmailingLead] = useState<Lead | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const getStatusBadge = (status: string) => {
@@ -46,13 +48,7 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
   }
 
   const handleEmail = (lead: Lead) => {
-    const subject = encodeURIComponent(
-      `Partnership Opportunity - Equipment Financing for ${lead.company_name}`
-    )
-    const body = encodeURIComponent(
-      `Hi ${lead.contact_name || 'there'},\n\nI came across ${lead.company_name} and noticed you sell quality equipment in the area. I work with equipment dealers to help their customers secure competitive financing options.\n\nWould you be open to a quick call to discuss how a financing partnership could help you close more sales?\n\nBest regards`
-    )
-    window.location.href = `mailto:${lead.email}?subject=${subject}&body=${body}`
+    setEmailingLead(lead)
   }
 
   const handleDelete = async (id: string) => {
@@ -265,6 +261,14 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
             setEditingLead(null)
             onUpdate()
           }}
+        />
+      )}
+
+      {emailingLead && (
+        <EmailModal
+          open={!!emailingLead}
+          onOpenChange={(open) => !open && setEmailingLead(null)}
+          lead={emailingLead}
         />
       )}
     </>
