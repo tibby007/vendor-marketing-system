@@ -26,6 +26,7 @@ import {
   ExternalLink,
   Sparkles,
   AlertCircle,
+  Lock,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -325,26 +326,63 @@ export default function AIFinderPage() {
                       <MapPin className="h-4 w-4" />
                       {vendor.city}, {vendor.state} {vendor.zip_code}
                     </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Phone className="h-4 w-4" />
-                      {vendor.phone}
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Mail className="h-4 w-4" />
-                      {vendor.email}
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <Globe className="h-4 w-4" />
-                      <a
-                        href={vendor.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
-                      >
-                        {vendor.website.replace('https://www.', '')}
-                        <ExternalLink className="inline h-3 w-3 ml-1" />
-                      </a>
-                    </div>
+                    {tier === 'free' ? (
+                      <>
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Phone className="h-4 w-4" />
+                          <span className="blur-sm select-none">(555) 123-4567</span>
+                          <Link href="/billing">
+                            <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 cursor-pointer ml-1">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Upgrade
+                            </Badge>
+                          </Link>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Mail className="h-4 w-4" />
+                          <span className="blur-sm select-none">contact@company.com</span>
+                          <Link href="/billing">
+                            <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 cursor-pointer ml-1">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Upgrade
+                            </Badge>
+                          </Link>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-400">
+                          <Globe className="h-4 w-4" />
+                          <span className="blur-sm select-none">www.company.com</span>
+                          <Link href="/billing">
+                            <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 cursor-pointer ml-1">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Upgrade
+                            </Badge>
+                          </Link>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Phone className="h-4 w-4" />
+                          {vendor.phone}
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Mail className="h-4 w-4" />
+                          {vendor.email}
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Globe className="h-4 w-4" />
+                          <a
+                            href={vendor.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {vendor.website.replace('https://www.', '')}
+                            <ExternalLink className="inline h-3 w-3 ml-1" />
+                          </a>
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-1 mb-4">
@@ -358,29 +396,43 @@ export default function AIFinderPage() {
                   <p className="text-sm text-gray-600 mb-4">{vendor.description}</p>
 
                   <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      className="flex-1 bg-orange-500 hover:bg-orange-600"
-                      onClick={() => handleAddLead(vendor)}
-                      disabled={addingLeadId === vendor.id}
-                    >
-                      {addingLeadId === vendor.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Plus className="h-4 w-4 mr-1" />
-                          Add to Leads
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEmail(vendor)}
-                    >
-                      <Mail className="h-4 w-4 mr-1" />
-                      Email
-                    </Button>
+                    {tier === 'free' ? (
+                      <Link href="/billing" className="flex-1">
+                        <Button
+                          size="sm"
+                          className="w-full bg-orange-500 hover:bg-orange-600"
+                        >
+                          <Lock className="h-4 w-4 mr-1" />
+                          Upgrade to Access
+                        </Button>
+                      </Link>
+                    ) : (
+                      <>
+                        <Button
+                          size="sm"
+                          className="flex-1 bg-orange-500 hover:bg-orange-600"
+                          onClick={() => handleAddLead(vendor)}
+                          disabled={addingLeadId === vendor.id}
+                        >
+                          {addingLeadId === vendor.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-1" />
+                              Add to Leads
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEmail(vendor)}
+                        >
+                          <Mail className="h-4 w-4 mr-1" />
+                          Email
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
