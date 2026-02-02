@@ -40,27 +40,24 @@ export default function AIFinderPage() {
   const [tier, setTier] = useState('free')
   const [addingLeadId, setAddingLeadId] = useState<string | null>(null)
 
-  // Fetch user's subscription info
+  // Fetch user's subscription info via API to bypass RLS
   useEffect(() => {
     const fetchUserInfo = async () => {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+      try {
+        const response = await fetch('/api/profile')
+        if (response.ok) {
+          const { profile } = await response.json()
+          if (profile) {
+            const userTier = profile.subscription_tier || 'free'
+            setTier(userTier)
+            setSearchCount(profile.searches_this_month || 0)
 
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('subscription_tier, searches_this_month')
-          .eq('id', user.id)
-          .single()
-
-        if (profile) {
-          const userTier = profile.subscription_tier || 'free'
-          setTier(userTier)
-          setSearchCount(profile.searches_this_month || 0)
-
-          const tierConfig = SUBSCRIPTION_TIERS[userTier as keyof typeof SUBSCRIPTION_TIERS]
-          setSearchLimit(tierConfig?.searchLimit || 3)
+            const tierConfig = SUBSCRIPTION_TIERS[userTier as keyof typeof SUBSCRIPTION_TIERS]
+            setSearchLimit(tierConfig?.searchLimit || 3)
+          }
         }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error)
       }
     }
 

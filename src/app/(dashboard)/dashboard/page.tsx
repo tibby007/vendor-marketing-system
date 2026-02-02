@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Users, Search, Calendar, TrendingUp, ArrowRight } from 'lucide-react'
@@ -15,15 +16,16 @@ export default async function DashboardPage() {
     return null
   }
 
-  // Get profile info
-  const { data: profile } = await supabase
+  // Get profile info using admin client to bypass RLS
+  const adminClient = createAdminClient()
+  const { data: profile } = await adminClient
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
 
-  // Get lead stats
-  const { data: leads } = await supabase
+  // Get lead stats using admin client
+  const { data: leads } = await adminClient
     .from('leads')
     .select('status')
     .eq('user_id', user.id)
