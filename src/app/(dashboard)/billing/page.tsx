@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -18,16 +17,9 @@ export default function BillingPage() {
   useEffect(() => {
     const fetchSubscription = async () => {
       try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('subscription_tier')
-            .eq('id', user.id)
-            .single()
-
+        const response = await fetch('/api/profile')
+        if (response.ok) {
+          const { profile } = await response.json()
           if (profile) {
             setCurrentTier(profile.subscription_tier || 'free')
           }
