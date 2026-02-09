@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -13,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { US_STATES, EQUIPMENT_TYPES, SUBSCRIPTION_TIERS } from '@/lib/constants'
-import { generateMockVendors, MockVendor } from '@/lib/search/mock-data'
+import { MockVendor } from '@/lib/search/mock-data'
 import { useToast } from '@/hooks/use-toast'
 import {
   Search,
@@ -75,52 +74,39 @@ export default function AIFinderPage() {
       return
     }
 
-    // Check search limit
-    if (searchLimit !== -1 && searchCount >= searchLimit) {
-      toast({
-        title: 'Search limit reached',
-        description: 'Upgrade your plan for more searches.',
-        variant: 'destructive',
-      })
-      return
-    }
-
     setLoading(true)
     setResults([])
 
     try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await fetch('/api/ai-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ state, equipmentType }),
+      })
 
-      // Generate mock results
-      const vendors = generateMockVendors(state, equipmentType || 'any')
-      setResults(vendors)
+      const data = await response.json()
 
-      // Update search count
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (user) {
-        // Record search in history
-        await supabase.from('search_history').insert({
-          user_id: user.id,
-          search_type: 'ai_finder',
-          criteria: { state, equipmentType },
-          results_count: vendors.length,
-        })
-
-        // Increment search count
-        await supabase
-          .from('profiles')
-          .update({ searches_this_month: searchCount + 1 })
-          .eq('id', user.id)
-
-        setSearchCount((prev) => prev + 1)
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast({
+            title: 'Search limit reached',
+            description: 'Upgrade your plan for more searches.',
+            variant: 'destructive',
+          })
+          setSearchCount(data.searchCount || searchCount)
+          return
+        }
+        throw new Error(data.error || 'Search failed')
       }
+
+      setResults(data.results)
+      setSearchCount(data.searchCount)
+      setSearchLimit(data.searchLimit)
+      setTier(data.tier)
 
       toast({
         title: 'Search complete',
-        description: `Found ${vendors.length} potential vendors.`,
+        description: `Found ${data.results.length} potential vendors.`,
       })
     } catch {
       toast({
@@ -137,29 +123,39 @@ export default function AIFinderPage() {
     setAddingLeadId(vendor.id)
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) throw new Error('Not authenticated')
-
-      const { error } = await supabase.from('leads').insert({
-        user_id: user.id,
-        company_name: vendor.company_name,
-        contact_name: vendor.contact_name,
-        email: vendor.email,
-        phone: vendor.phone,
-        website: vendor.website,
-        address: vendor.address,
-        city: vendor.city,
-        state: vendor.state,
-        zip_code: vendor.zip_code,
-        equipment_types: vendor.equipment_types,
-        source: 'ai_finder',
-        status: 'new',
-        notes: vendor.description,
+      const response = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          company_name: vendor.company_name,
+          contact_name: vendor.contact_name,
+          email: vendor.email,
+          phone: vendor.phone,
+          website: vendor.website,
+          address: vendor.address,
+          city: vendor.city,
+          state: vendor.state,
+          zip_code: vendor.zip_code,
+          equipment_types: vendor.equipment_types,
+          source: 'ai_finder',
+          status: 'new',
+          notes: vendor.description,
+        }),
       })
 
-      if (error) throw error
+      const data = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast({
+            title: 'Lead limit reached',
+            description: data.error || 'Upgrade your plan to save more leads.',
+            variant: 'destructive',
+          })
+          return
+        }
+        throw new Error(data.error || 'Failed to add lead')
+      }
 
       toast({
         title: 'Lead added',
