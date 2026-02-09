@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select'
 import { US_STATES, EQUIPMENT_TYPES, LEAD_STATUSES } from '@/lib/constants'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ExternalLink } from 'lucide-react'
 
 interface EditLeadDialogProps {
   lead: Lead
@@ -154,6 +154,24 @@ export function EditLeadDialog({
 
         <form onSubmit={handleSubmit}>
           <div className="grid gap-4 py-4">
+            {/* Source Listing Link */}
+            {lead.source_url && (
+              <div className="rounded-md border border-purple-200 bg-purple-50 p-3">
+                <Label className="text-xs text-purple-700 mb-1 block">Original Listing</Label>
+                <a
+                  href={lead.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm text-purple-700 font-medium hover:underline"
+                >
+                  {lead.source_url.length > 60
+                    ? lead.source_url.slice(0, 60) + '...'
+                    : lead.source_url}
+                  <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
+                </a>
+              </div>
+            )}
+
             {/* Company Info */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

@@ -19,7 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Mail, Edit, Trash2, Eye } from 'lucide-react'
+import { MoreHorizontal, Mail, Edit, Trash2, Eye, ExternalLink } from 'lucide-react'
 import { LEAD_STATUSES } from '@/lib/constants'
 import { formatDistanceToNow } from 'date-fns'
 import { EditLeadDialog } from './EditLeadDialog'
@@ -127,7 +127,7 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
               <TableHead>Company</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Location</TableHead>
-              <TableHead>Equipment</TableHead>
+              <TableHead>Source</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Added</TableHead>
               <TableHead className="w-[70px]"></TableHead>
@@ -165,16 +165,35 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
                     : lead.state || '-'}
                 </TableCell>
                 <TableCell>
-                  <div className="flex flex-wrap gap-1">
-                    {lead.equipment_types?.slice(0, 2).map((type) => (
-                      <Badge key={type} variant="outline" className="text-xs">
-                        {type}
-                      </Badge>
-                    )) || '-'}
-                    {(lead.equipment_types?.length || 0) > 2 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{lead.equipment_types!.length - 2}
-                      </Badge>
+                  <div className="space-y-1">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${
+                        lead.source === 'smart_search'
+                          ? 'bg-purple-50 text-purple-700 border-purple-200'
+                          : lead.source === 'ai_finder'
+                          ? 'bg-orange-50 text-orange-700 border-orange-200'
+                          : 'bg-gray-50 text-gray-700'
+                      }`}
+                    >
+                      {lead.source === 'smart_search'
+                        ? 'Smart Search'
+                        : lead.source === 'ai_finder'
+                        ? 'AI Finder'
+                        : lead.source === 'csv_import'
+                        ? 'CSV Import'
+                        : 'Manual'}
+                    </Badge>
+                    {lead.source_url && (
+                      <a
+                        href={lead.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                      >
+                        View listing
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
                     )}
                   </div>
                 </TableCell>
@@ -196,6 +215,18 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      {lead.source_url && (
+                        <DropdownMenuItem asChild>
+                          <a
+                            href={lead.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="mr-2 h-4 w-4" />
+                            View Listing
+                          </a>
+                        </DropdownMenuItem>
+                      )}
                       {lead.email && (
                         <DropdownMenuItem onClick={() => handleEmail(lead)}>
                           <Mail className="mr-2 h-4 w-4" />
