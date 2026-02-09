@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -24,20 +23,13 @@ export default function SettingsPage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-
+        const response = await fetch('/api/profile')
+        if (response.ok) {
+          const { profile } = await response.json()
           if (profile) {
             setFormData({
               full_name: profile.full_name || '',
-              email: profile.email || user.email || '',
+              email: profile.email || '',
               company_name: profile.company_name || '',
               phone: profile.phone || '',
             })
@@ -69,21 +61,17 @@ export default function SettingsPage() {
     setSaving(true)
 
     try {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
-
-      if (!user) throw new Error('Not authenticated')
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           full_name: formData.full_name,
           company_name: formData.company_name,
           phone: formData.phone,
-        })
-        .eq('id', user.id)
+        }),
+      })
 
-      if (error) throw error
+      if (!response.ok) throw new Error('Failed to save')
 
       toast({
         title: 'Settings saved',
