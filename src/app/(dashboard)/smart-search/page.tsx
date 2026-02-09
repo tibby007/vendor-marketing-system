@@ -24,10 +24,16 @@ import {
   ExternalLink,
   DollarSign,
   MapPin,
+  Plus,
+  CheckCircle2,
+  Lightbulb,
+  ArrowRight,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { EQUIPMENT_TYPES, US_STATES } from '@/lib/constants'
+import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/hooks/use-toast'
 
 interface RedditPost {
   id: string
@@ -53,6 +59,7 @@ interface CraigslistListing {
 type ActiveTab = 'all' | 'reddit' | 'craigslist'
 
 export default function SmartSearchPage() {
+  const { toast } = useToast()
   const [tier, setTier] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [searching, setSearching] = useState(false)
@@ -71,6 +78,8 @@ export default function SmartSearchPage() {
     craigslistError?: string
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [savingLeadId, setSavingLeadId] = useState<string | null>(null)
+  const [savedLeadIds, setSavedLeadIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -101,6 +110,7 @@ export default function SmartSearchPage() {
     setRedditResults([])
     setCraigslistResults([])
     setSearchMeta(null)
+    setSavedLeadIds(new Set())
 
     try {
       const response = await fetch('/api/smart-search', {
@@ -129,6 +139,88 @@ export default function SmartSearchPage() {
       setError(err instanceof Error ? err.message : 'Search failed. Please try again.')
     } finally {
       setSearching(false)
+    }
+  }
+
+  const handleSaveCraigslistLead = async (listing: CraigslistListing, index: number) => {
+    const leadId = `cl-${index}`
+    setSavingLeadId(leadId)
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      // Extract equipment type from search context
+      const equipTypes = equipmentType !== 'any' ? [equipmentType] : []
+
+      const { error: insertError } = await supabase.from('leads').insert({
+        user_id: user.id,
+        company_name: listing.title,
+        city: listing.location || undefined,
+        state: state && state !== 'any' ? state : undefined,
+        equipment_types: equipTypes.length > 0 ? equipTypes : undefined,
+        source: 'smart_search' as const,
+        source_url: listing.url,
+        status: 'new' as const,
+        notes: `Craigslist listing - ${listing.price || 'Price not listed'}. Found via Smart Search.`,
+      })
+
+      if (insertError) throw insertError
+
+      setSavedLeadIds((prev) => new Set(prev).add(leadId))
+      toast({
+        title: 'Lead saved',
+        description: 'Listing saved to My Leads. Visit the listing to get contact details.',
+      })
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to save lead. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingLeadId(null)
+    }
+  }
+
+  const handleSaveRedditLead = async (post: RedditPost) => {
+    const leadId = `rd-${post.id}`
+    setSavingLeadId(leadId)
+
+    try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('Not authenticated')
+
+      const equipTypes = equipmentType !== 'any' ? [equipmentType] : []
+
+      const { error: insertError } = await supabase.from('leads').insert({
+        user_id: user.id,
+        company_name: post.title.slice(0, 100),
+        contact_name: `u/${post.author}`,
+        equipment_types: equipTypes.length > 0 ? equipTypes : undefined,
+        source: 'smart_search' as const,
+        source_url: post.permalink,
+        status: 'new' as const,
+        notes: `Reddit post from r/${post.subreddit} (${post.score} upvotes, ${post.num_comments} comments). ${post.selftext ? post.selftext.slice(0, 200) : ''}`.trim(),
+      })
+
+      if (insertError) throw insertError
+
+      setSavedLeadIds((prev) => new Set(prev).add(leadId))
+      toast({
+        title: 'Lead saved',
+        description: 'Reddit post saved to My Leads.',
+      })
+    } catch {
+      toast({
+        title: 'Error',
+        description: 'Failed to save lead. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setSavingLeadId(null)
     }
   }
 
@@ -227,107 +319,282 @@ export default function SmartSearchPage() {
         </>
       ) : (
         <>
-          {/* Search Form */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Radar className="h-5 w-5 text-orange-500" />
-                Multi-Platform Search
-              </CardTitle>
-              <CardDescription>
-                Search Reddit and Craigslist simultaneously for equipment vendors and listings.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-4">
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="query">Search Query</Label>
-                  <Input
-                    id="query"
-                    placeholder="e.g., used excavator, Cat equipment for sale..."
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  />
-                </div>
+          {/* How to Use Guide - shown before first search */}
+          {!searchMeta && redditResults.length === 0 && craigslistResults.length === 0 && !searching && (
+            <>
+              {/* Search Form */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Radar className="h-5 w-5 text-orange-500" />
+                    Multi-Platform Search
+                  </CardTitle>
+                  <CardDescription>
+                    Search Reddit and Craigslist simultaneously for equipment vendors and listings.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-4">
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="query">Search Query</Label>
+                      <Input
+                        id="query"
+                        placeholder="e.g., used excavator, Cat equipment for sale..."
+                        value={query}
+                        onChange={(e) => setQuery(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      />
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>Equipment Type</Label>
-                  <Select value={equipmentType} onValueChange={setEquipmentType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any Equipment" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EQUIPMENT_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <div className="space-y-2">
+                      <Label>Equipment Type</Label>
+                      <Select value={equipmentType} onValueChange={setEquipmentType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Any Equipment" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {EQUIPMENT_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              {type.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label>State</Label>
-                  <Select value={state} onValueChange={setState}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Any State" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="any">Any State</SelectItem>
-                      {US_STATES.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                    <div className="space-y-2">
+                      <Label>State</Label>
+                      <Select value={state} onValueChange={setState}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Any State" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="any">Any State</SelectItem>
+                          {US_STATES.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>
+                              {s.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-              <div className="mt-4 flex gap-2">
-                <Button
-                  onClick={handleSearch}
-                  disabled={searching}
-                  className="bg-orange-500 hover:bg-orange-600"
-                >
-                  {searching ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Searching platforms...
-                    </>
-                  ) : (
-                    <>
+                  <div className="mt-4">
+                    <Button
+                      onClick={handleSearch}
+                      disabled={searching}
+                      className="bg-orange-500 hover:bg-orange-600"
+                    >
                       <Search className="h-4 w-4 mr-2" />
                       Search All Platforms
-                    </>
+                    </Button>
+                  </div>
+
+                  {error && (
+                    <p className="mt-3 text-sm text-red-600">{error}</p>
                   )}
-                </Button>
+                </CardContent>
+              </Card>
 
-                {(query || equipmentType !== 'any' || state) && (
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setQuery('')
-                      setEquipmentType('any')
-                      setState('')
-                      setRedditResults([])
-                      setCraigslistResults([])
-                      setSearchMeta(null)
-                      setError(null)
-                      setActiveTab('all')
-                    }}
-                  >
-                    Clear
-                  </Button>
-                )}
+              {/* How It Works */}
+              <Card className="border-orange-200 bg-orange-50/50">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Lightbulb className="h-5 w-5 text-orange-500" />
+                    How Smart Search Works
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-6 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0">1</div>
+                        <h4 className="font-semibold text-gray-900">Search across platforms</h4>
+                      </div>
+                      <p className="text-sm text-gray-600 pl-9">
+                        Enter an equipment type, keyword, or state. We search Craigslist heavy equipment listings and Reddit communities simultaneously.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0">2</div>
+                        <h4 className="font-semibold text-gray-900">Save leads you want to pursue</h4>
+                      </div>
+                      <p className="text-sm text-gray-600 pl-9">
+                        Click &quot;Save Lead&quot; on any result to add it to your My Leads pipeline. The listing URL and details are saved automatically.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-sm font-bold shrink-0">3</div>
+                        <h4 className="font-semibold text-gray-900">Follow up and convert</h4>
+                      </div>
+                      <p className="text-sm text-gray-600 pl-9">
+                        Go to My Leads to track status, add contact info from the listing, set follow-up dates, and send outreach emails.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-orange-200">
+                    <h4 className="font-semibold text-gray-900 mb-2 text-sm">Tips for best results:</h4>
+                    <ul className="text-sm text-gray-600 space-y-1">
+                      <li>&#8226; Select a <strong>state</strong> for Craigslist — it targets that region&apos;s listings directly</li>
+                      <li>&#8226; Use specific terms like &quot;Cat 320&quot; or &quot;John Deere dealer&quot; for more relevant results</li>
+                      <li>&#8226; Craigslist returns priced listings; Reddit surfaces discussions, recommendations, and dealer reviews</li>
+                      <li>&#8226; Saved leads appear in <strong>My Leads</strong> with a &quot;Smart Search&quot; source tag so you can filter them</li>
+                    </ul>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Platform status cards */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      Craigslist
+                      <Badge className="bg-green-100 text-green-700 text-xs">Live</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-gray-500">
+                    Heavy equipment listings across all US regions.
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      Reddit
+                      <Badge className="bg-green-100 text-green-700 text-xs">Live</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-gray-500">
+                    r/heavyequipment, r/construction, and related communities.
+                  </CardContent>
+                </Card>
+
+                <Card className="opacity-60">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      Marketplace Monitoring
+                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-gray-500">
+                    Get alerts when new listings match your criteria.
+                  </CardContent>
+                </Card>
               </div>
+            </>
+          )}
 
-              {error && (
-                <p className="mt-3 text-sm text-red-600">{error}</p>
-              )}
-            </CardContent>
-          </Card>
+          {/* Search Form (when results are shown) */}
+          {(searchMeta || searching) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Radar className="h-5 w-5 text-orange-500" />
+                  Multi-Platform Search
+                </CardTitle>
+                <CardDescription>
+                  Search Reddit and Craigslist simultaneously for equipment vendors and listings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="md:col-span-2 space-y-2">
+                    <Label htmlFor="query">Search Query</Label>
+                    <Input
+                      id="query"
+                      placeholder="e.g., used excavator, Cat equipment for sale..."
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Equipment Type</Label>
+                    <Select value={equipmentType} onValueChange={setEquipmentType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Any Equipment" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {EQUIPMENT_TYPES.map((type) => (
+                          <SelectItem key={type.value} value={type.value}>
+                            {type.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>State</Label>
+                    <Select value={state} onValueChange={setState}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Any State" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="any">Any State</SelectItem>
+                        {US_STATES.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    onClick={handleSearch}
+                    disabled={searching}
+                    className="bg-orange-500 hover:bg-orange-600"
+                  >
+                    {searching ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Searching platforms...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-4 w-4 mr-2" />
+                        Search All Platforms
+                      </>
+                    )}
+                  </Button>
+
+                  {(query || equipmentType !== 'any' || state) && (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setQuery('')
+                        setEquipmentType('any')
+                        setState('')
+                        setRedditResults([])
+                        setCraigslistResults([])
+                        setSearchMeta(null)
+                        setError(null)
+                        setActiveTab('all')
+                        setSavedLeadIds(new Set())
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+
+                {error && (
+                  <p className="mt-3 text-sm text-red-600">{error}</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Results Tabs & Summary */}
           {searchMeta && (
@@ -337,6 +604,11 @@ export default function SmartSearchPage() {
                   <span>
                     Found <strong className="text-gray-900">{totalResults}</strong> results across platforms
                   </span>
+                  {savedLeadIds.size > 0 && (
+                    <Link href="/my-leads" className="flex items-center gap-1 text-orange-600 hover:text-orange-700 font-medium">
+                      {savedLeadIds.size} saved <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
                 </div>
 
                 {/* Platform Tabs */}
@@ -374,7 +646,6 @@ export default function SmartSearchPage() {
                 </div>
               </div>
 
-              {/* Platform errors */}
               {searchMeta.redditError && (activeTab === 'all' || activeTab === 'reddit') && (
                 <p className="text-sm text-amber-600">Reddit: {searchMeta.redditError}</p>
               )}
@@ -397,54 +668,88 @@ export default function SmartSearchPage() {
                   )}
                 </h3>
               )}
-              {craigslistResults.map((listing, i) => (
-                <Card key={`cl-${i}`} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className="bg-purple-100 text-purple-700 text-xs shrink-0">
-                            Craigslist
-                          </Badge>
-                          {listing.location && (
-                            <span className="text-xs text-gray-400 flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {listing.location}
-                            </span>
+              {craigslistResults.map((listing, i) => {
+                const leadId = `cl-${i}`
+                const isSaved = savedLeadIds.has(leadId)
+                const isSaving = savingLeadId === leadId
+
+                return (
+                  <Card key={leadId} className={`hover:shadow-md transition-shadow ${isSaved ? 'border-green-200 bg-green-50/30' : ''}`}>
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className="bg-purple-100 text-purple-700 text-xs shrink-0">
+                              Craigslist
+                            </Badge>
+                            {listing.location && (
+                              <span className="text-xs text-gray-400 flex items-center gap-1">
+                                <MapPin className="h-3 w-3" />
+                                {listing.location}
+                              </span>
+                            )}
+                            {isSaved && (
+                              <Badge className="bg-green-100 text-green-700 text-xs">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Saved
+                              </Badge>
+                            )}
+                          </div>
+
+                          <a
+                            href={listing.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-base font-medium text-gray-900 hover:text-orange-600 line-clamp-2"
+                          >
+                            {listing.title}
+                          </a>
+
+                          {listing.price && listing.price !== 'N/A' && (
+                            <div className="flex items-center gap-1 mt-1 text-sm font-semibold text-green-700">
+                              <DollarSign className="h-3.5 w-3.5" />
+                              {listing.price.replace('$', '')}
+                            </div>
                           )}
                         </div>
 
-                        <a
-                          href={listing.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-base font-medium text-gray-900 hover:text-orange-600 line-clamp-2"
-                        >
-                          {listing.title}
-                        </a>
-
-                        {listing.price && listing.price !== 'N/A' && (
-                          <div className="flex items-center gap-1 mt-1 text-sm font-semibold text-green-700">
-                            <DollarSign className="h-3.5 w-3.5" />
-                            {listing.price.replace('$', '')}
-                          </div>
-                        )}
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            variant={isSaved ? 'outline' : 'default'}
+                            className={`h-8 ${!isSaved ? 'bg-orange-500 hover:bg-orange-600' : 'text-green-700 border-green-300'}`}
+                            disabled={isSaving || isSaved}
+                            onClick={() => handleSaveCraigslistLead(listing, i)}
+                          >
+                            {isSaving ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isSaved ? (
+                              <>
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                Saved
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-3.5 w-3.5 mr-1" />
+                                Save Lead
+                              </>
+                            )}
+                          </Button>
+                          <a
+                            href={listing.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <Button size="sm" variant="outline" className="h-8 px-2">
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </a>
+                        </div>
                       </div>
-
-                      <a
-                        href={listing.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0"
-                      >
-                        <Button size="sm" variant="outline" className="h-8 px-2">
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </a>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
 
@@ -459,95 +764,128 @@ export default function SmartSearchPage() {
                   </span>
                 </h3>
               )}
-              {redditResults.map((post) => (
-                <Card key={post.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="pt-4 pb-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge className="bg-orange-100 text-orange-700 text-xs shrink-0">
-                            r/{post.subreddit}
-                          </Badge>
-                          {post.link_flair_text && (
-                            <Badge variant="secondary" className="text-xs shrink-0">
-                              {post.link_flair_text}
+              {redditResults.map((post) => {
+                const leadId = `rd-${post.id}`
+                const isSaved = savedLeadIds.has(leadId)
+                const isSaving = savingLeadId === leadId
+
+                return (
+                  <Card key={post.id} className={`hover:shadow-md transition-shadow ${isSaved ? 'border-green-200 bg-green-50/30' : ''}`}>
+                    <CardContent className="pt-4 pb-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className="bg-orange-100 text-orange-700 text-xs shrink-0">
+                              r/{post.subreddit}
                             </Badge>
-                          )}
-                          <span className="text-xs text-gray-400 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatTimeAgo(post.created_utc)}
-                          </span>
-                        </div>
+                            {post.link_flair_text && (
+                              <Badge variant="secondary" className="text-xs shrink-0">
+                                {post.link_flair_text}
+                              </Badge>
+                            )}
+                            <span className="text-xs text-gray-400 flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {formatTimeAgo(post.created_utc)}
+                            </span>
+                            {isSaved && (
+                              <Badge className="bg-green-100 text-green-700 text-xs">
+                                <CheckCircle2 className="h-3 w-3 mr-1" />
+                                Saved
+                              </Badge>
+                            )}
+                          </div>
 
-                        <a
-                          href={post.permalink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-base font-medium text-gray-900 hover:text-orange-600 line-clamp-2"
-                        >
-                          {post.title}
-                        </a>
-
-                        {post.selftext && (
-                          <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                            {post.selftext}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <ThumbsUp className="h-3 w-3" />
-                            {post.score}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MessageSquare className="h-3 w-3" />
-                            {post.num_comments} comments
-                          </span>
-                          <span>by u/{post.author}</span>
-                        </div>
-                      </div>
-
-                      <div className="flex gap-1 shrink-0">
-                        <a
-                          href={post.permalink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Button size="sm" variant="outline" className="h-8 px-2">
-                            <ArrowUpRight className="h-4 w-4" />
-                          </Button>
-                        </a>
-                        {post.url !== post.permalink && !post.url.includes('reddit.com') && (
                           <a
-                            href={post.url}
+                            href={post.permalink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-base font-medium text-gray-900 hover:text-orange-600 line-clamp-2"
+                          >
+                            {post.title}
+                          </a>
+
+                          {post.selftext && (
+                            <p className="text-sm text-gray-500 mt-1 line-clamp-2">
+                              {post.selftext}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                            <span className="flex items-center gap-1">
+                              <ThumbsUp className="h-3 w-3" />
+                              {post.score}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3" />
+                              {post.num_comments} comments
+                            </span>
+                            <span>by u/{post.author}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-1 shrink-0">
+                          <Button
+                            size="sm"
+                            variant={isSaved ? 'outline' : 'default'}
+                            className={`h-8 ${!isSaved ? 'bg-orange-500 hover:bg-orange-600' : 'text-green-700 border-green-300'}`}
+                            disabled={isSaving || isSaved}
+                            onClick={() => handleSaveRedditLead(post)}
+                          >
+                            {isSaving ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isSaved ? (
+                              <>
+                                <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                Saved
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-3.5 w-3.5 mr-1" />
+                                Save Lead
+                              </>
+                            )}
+                          </Button>
+                          <a
+                            href={post.permalink}
                             target="_blank"
                             rel="noopener noreferrer"
                           >
                             <Button size="sm" variant="outline" className="h-8 px-2">
-                              <ExternalLink className="h-4 w-4" />
+                              <ArrowUpRight className="h-4 w-4" />
                             </Button>
                           </a>
-                        )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
 
-          {/* Empty state - no search yet */}
-          {!searching && redditResults.length === 0 && craigslistResults.length === 0 && !searchMeta && (
-            <Card>
-              <CardContent className="text-center py-12">
-                <Radar className="h-12 w-12 text-orange-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Search Equipment Across Platforms
-                </h3>
-                <p className="text-gray-500 max-w-md mx-auto">
-                  Search Craigslist heavy equipment listings and Reddit communities
-                  simultaneously to find vendors, deals, and dealer recommendations.
-                </p>
+          {/* Saved leads CTA */}
+          {savedLeadIds.size > 0 && (
+            <Card className="border-green-200 bg-green-50">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {savedLeadIds.size} lead{savedLeadIds.size !== 1 ? 's' : ''} saved to your pipeline
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        Visit each listing to grab contact details, then manage follow-ups in My Leads.
+                      </p>
+                    </div>
+                  </div>
+                  <Link href="/my-leads">
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      Go to My Leads
+                      <ArrowRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -562,45 +900,6 @@ export default function SmartSearchPage() {
               </CardContent>
             </Card>
           )}
-
-          {/* Platform status cards */}
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  Craigslist
-                  <Badge className="bg-green-100 text-green-700 text-xs">Live</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-gray-500">
-                Heavy equipment listings across all US regions.
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  Reddit
-                  <Badge className="bg-green-100 text-green-700 text-xs">Live</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-gray-500">
-                r/heavyequipment, r/construction, and related communities.
-              </CardContent>
-            </Card>
-
-            <Card className="opacity-60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  Marketplace Monitoring
-                  <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-gray-500">
-                Get alerts when new listings match your criteria.
-              </CardContent>
-            </Card>
-          </div>
         </>
       )}
     </div>
