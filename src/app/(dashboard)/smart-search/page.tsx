@@ -22,6 +22,8 @@ import {
   ThumbsUp,
   Clock,
   ExternalLink,
+  DollarSign,
+  MapPin,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
@@ -41,6 +43,15 @@ interface RedditPost {
   link_flair_text: string | null
 }
 
+interface CraigslistListing {
+  title: string
+  url: string
+  price: string
+  location: string
+}
+
+type ActiveTab = 'all' | 'reddit' | 'craigslist'
+
 export default function SmartSearchPage() {
   const [tier, setTier] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -48,11 +59,16 @@ export default function SmartSearchPage() {
   const [query, setQuery] = useState('')
   const [equipmentType, setEquipmentType] = useState('any')
   const [state, setState] = useState('')
-  const [results, setResults] = useState<RedditPost[]>([])
-  const [searchInfo, setSearchInfo] = useState<{
+  const [activeTab, setActiveTab] = useState<ActiveTab>('all')
+  const [redditResults, setRedditResults] = useState<RedditPost[]>([])
+  const [craigslistResults, setCraigslistResults] = useState<CraigslistListing[]>([])
+  const [searchMeta, setSearchMeta] = useState<{
+    redditTotal: number
+    craigslistTotal: number
+    craigslistRegion: string
     subredditsSearched: string[]
-    totalResults: number
-    query: string
+    redditError?: string
+    craigslistError?: string
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -82,11 +98,12 @@ export default function SmartSearchPage() {
 
     setSearching(true)
     setError(null)
-    setResults([])
-    setSearchInfo(null)
+    setRedditResults([])
+    setCraigslistResults([])
+    setSearchMeta(null)
 
     try {
-      const response = await fetch('/api/reddit-search', {
+      const response = await fetch('/api/smart-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query, equipmentType, state }),
@@ -98,11 +115,15 @@ export default function SmartSearchPage() {
       }
 
       const data = await response.json()
-      setResults(data.results)
-      setSearchInfo({
-        subredditsSearched: data.subredditsSearched,
-        totalResults: data.totalResults,
-        query: data.query,
+      setRedditResults(data.reddit?.posts || [])
+      setCraigslistResults(data.craigslist?.listings || [])
+      setSearchMeta({
+        redditTotal: data.reddit?.totalResults || 0,
+        craigslistTotal: data.craigslist?.totalResults || 0,
+        craigslistRegion: data.craigslist?.region || '',
+        subredditsSearched: data.reddit?.subredditsSearched || [],
+        redditError: data.reddit?.error,
+        craigslistError: data.craigslist?.error,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed. Please try again.')
@@ -130,6 +151,7 @@ export default function SmartSearchPage() {
   }
 
   const hasAccess = tier === 'pro' || tier === 'enterprise'
+  const totalResults = (searchMeta?.redditTotal || 0) + (searchMeta?.craigslistTotal || 0)
 
   return (
     <div className="space-y-6">
@@ -176,7 +198,6 @@ export default function SmartSearchPage() {
             </CardContent>
           </Card>
 
-          {/* Preview of what's included */}
           <div className="grid gap-4 md:grid-cols-3">
             <Card>
               <CardHeader>
@@ -186,7 +207,6 @@ export default function SmartSearchPage() {
                 Search r/heavyequipment, r/construction, and related subreddits.
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Craigslist</CardTitle>
@@ -195,7 +215,6 @@ export default function SmartSearchPage() {
                 Monitor heavy equipment listings across all US regions.
               </CardContent>
             </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Marketplace Monitoring</CardTitle>
@@ -216,7 +235,7 @@ export default function SmartSearchPage() {
                 Multi-Platform Search
               </CardTitle>
               <CardDescription>
-                Search Reddit equipment communities for vendors, listings, and dealer recommendations.
+                Search Reddit and Craigslist simultaneously for equipment vendors and listings.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -225,7 +244,7 @@ export default function SmartSearchPage() {
                   <Label htmlFor="query">Search Query</Label>
                   <Input
                     id="query"
-                    placeholder="e.g., used excavator dealer, Cat equipment for sale..."
+                    placeholder="e.g., used excavator, Cat equipment for sale..."
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -249,7 +268,7 @@ export default function SmartSearchPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>State (optional)</Label>
+                  <Label>State</Label>
                   <Select value={state} onValueChange={setState}>
                     <SelectTrigger>
                       <SelectValue placeholder="Any State" />
@@ -275,12 +294,12 @@ export default function SmartSearchPage() {
                   {searching ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Searching...
+                      Searching platforms...
                     </>
                   ) : (
                     <>
                       <Search className="h-4 w-4 mr-2" />
-                      Search Platforms
+                      Search All Platforms
                     </>
                   )}
                 </Button>
@@ -292,9 +311,11 @@ export default function SmartSearchPage() {
                       setQuery('')
                       setEquipmentType('any')
                       setState('')
-                      setResults([])
-                      setSearchInfo(null)
+                      setRedditResults([])
+                      setCraigslistResults([])
+                      setSearchMeta(null)
                       setError(null)
+                      setActiveTab('all')
                     }}
                   >
                     Clear
@@ -308,28 +329,143 @@ export default function SmartSearchPage() {
             </CardContent>
           </Card>
 
-          {/* Search Info */}
-          {searchInfo && (
-            <div className="flex items-center gap-4 text-sm text-gray-500">
-              <span>
-                Found <strong className="text-gray-900">{searchInfo.totalResults}</strong> results
-              </span>
-              <span>
-                Searched: {searchInfo.subredditsSearched.map((s) => `r/${s}`).join(', ')}
-              </span>
+          {/* Results Tabs & Summary */}
+          {searchMeta && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-4 text-sm text-gray-500">
+                  <span>
+                    Found <strong className="text-gray-900">{totalResults}</strong> results across platforms
+                  </span>
+                </div>
+
+                {/* Platform Tabs */}
+                <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setActiveTab('all')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      activeTab === 'all'
+                        ? 'bg-white text-gray-900 shadow-sm font-medium'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    All ({totalResults})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('craigslist')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      activeTab === 'craigslist'
+                        ? 'bg-white text-gray-900 shadow-sm font-medium'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Craigslist ({searchMeta.craigslistTotal})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('reddit')}
+                    className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                      activeTab === 'reddit'
+                        ? 'bg-white text-gray-900 shadow-sm font-medium'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Reddit ({searchMeta.redditTotal})
+                  </button>
+                </div>
+              </div>
+
+              {/* Platform errors */}
+              {searchMeta.redditError && (activeTab === 'all' || activeTab === 'reddit') && (
+                <p className="text-sm text-amber-600">Reddit: {searchMeta.redditError}</p>
+              )}
+              {searchMeta.craigslistError && (activeTab === 'all' || activeTab === 'craigslist') && (
+                <p className="text-sm text-amber-600">Craigslist: {searchMeta.craigslistError}</p>
+              )}
             </div>
           )}
 
-          {/* Results */}
-          {results.length > 0 && (
+          {/* Craigslist Results */}
+          {(activeTab === 'all' || activeTab === 'craigslist') && craigslistResults.length > 0 && (
             <div className="space-y-3">
-              {results.map((post) => (
+              {activeTab === 'all' && (
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                  Craigslist Listings
+                  {searchMeta?.craigslistRegion && (
+                    <span className="font-normal text-gray-400 ml-2 normal-case">
+                      {searchMeta.craigslistRegion} region
+                    </span>
+                  )}
+                </h3>
+              )}
+              {craigslistResults.map((listing, i) => (
+                <Card key={`cl-${i}`} className="hover:shadow-md transition-shadow">
+                  <CardContent className="pt-4 pb-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className="bg-purple-100 text-purple-700 text-xs shrink-0">
+                            Craigslist
+                          </Badge>
+                          {listing.location && (
+                            <span className="text-xs text-gray-400 flex items-center gap-1">
+                              <MapPin className="h-3 w-3" />
+                              {listing.location}
+                            </span>
+                          )}
+                        </div>
+
+                        <a
+                          href={listing.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-base font-medium text-gray-900 hover:text-orange-600 line-clamp-2"
+                        >
+                          {listing.title}
+                        </a>
+
+                        {listing.price && listing.price !== 'N/A' && (
+                          <div className="flex items-center gap-1 mt-1 text-sm font-semibold text-green-700">
+                            <DollarSign className="h-3.5 w-3.5" />
+                            {listing.price.replace('$', '')}
+                          </div>
+                        )}
+                      </div>
+
+                      <a
+                        href={listing.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0"
+                      >
+                        <Button size="sm" variant="outline" className="h-8 px-2">
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {/* Reddit Results */}
+          {(activeTab === 'all' || activeTab === 'reddit') && redditResults.length > 0 && (
+            <div className="space-y-3">
+              {activeTab === 'all' && (
+                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                  Reddit Posts
+                  <span className="font-normal text-gray-400 ml-2 normal-case">
+                    {searchMeta?.subredditsSearched.map((s) => `r/${s}`).join(', ')}
+                  </span>
+                </h3>
+              )}
+              {redditResults.map((post) => (
                 <Card key={post.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="pt-4 pb-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="text-xs shrink-0">
+                          <Badge className="bg-orange-100 text-orange-700 text-xs shrink-0">
                             r/{post.subreddit}
                           </Badge>
                           {post.link_flair_text && (
@@ -400,24 +536,24 @@ export default function SmartSearchPage() {
             </div>
           )}
 
-          {/* Empty state */}
-          {!searching && results.length === 0 && !searchInfo && (
+          {/* Empty state - no search yet */}
+          {!searching && redditResults.length === 0 && craigslistResults.length === 0 && !searchMeta && (
             <Card>
               <CardContent className="text-center py-12">
                 <Radar className="h-12 w-12 text-orange-300 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">
-                  Search Equipment Communities
+                  Search Equipment Across Platforms
                 </h3>
                 <p className="text-gray-500 max-w-md mx-auto">
-                  Search across r/heavyequipment, r/Construction, and other equipment
-                  communities to find vendors, listings, and dealer recommendations.
+                  Search Craigslist heavy equipment listings and Reddit communities
+                  simultaneously to find vendors, deals, and dealer recommendations.
                 </p>
               </CardContent>
             </Card>
           )}
 
           {/* No results state */}
-          {!searching && searchInfo && results.length === 0 && (
+          {!searching && searchMeta && totalResults === 0 && (
             <Card>
               <CardContent className="text-center py-8">
                 <p className="text-gray-500">
@@ -432,24 +568,24 @@ export default function SmartSearchPage() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
+                  Craigslist
+                  <Badge className="bg-green-100 text-green-700 text-xs">Live</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-500">
+                Heavy equipment listings across all US regions.
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
                   Reddit
                   <Badge className="bg-green-100 text-green-700 text-xs">Live</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-gray-500">
-                Searching r/heavyequipment, r/construction, and related subreddits.
-              </CardContent>
-            </Card>
-
-            <Card className="opacity-60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  Craigslist
-                  <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="text-sm text-gray-500">
-                Monitor heavy equipment listings across all US regions.
+                r/heavyequipment, r/construction, and related communities.
               </CardContent>
             </Card>
 
