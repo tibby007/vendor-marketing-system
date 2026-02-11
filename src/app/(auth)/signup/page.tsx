@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Gift } from 'lucide-react'
+import { Loader2, Gift, Mail } from 'lucide-react'
 
 export default function SignupPage() {
   return (
@@ -19,7 +19,6 @@ export default function SignupPage() {
 }
 
 function SignupForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const promoCode = searchParams.get('promo')
 
@@ -32,6 +31,7 @@ function SignupForm() {
   })
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -44,13 +44,11 @@ function SignupForm() {
     e.preventDefault()
     setError(null)
 
-    // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match')
       return
     }
 
-    // Validate password length
     if (formData.password.length < 8) {
       setError('Password must be at least 8 characters')
       return
@@ -79,34 +77,40 @@ function SignupForm() {
         return
       }
 
-      // Update profile with company name (profile created by auth trigger)
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (supabase.from('profiles') as any)
-          .update({
-            company_name: formData.companyName,
-            full_name: formData.fullName,
-          })
-          .eq('id', user.id)
-
-        // Activate promo if code was provided
-        if (promoCode) {
-          await fetch('/api/activate-promo', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ promoCode }),
-          })
-        }
-      }
-
-      router.push('/dashboard')
-      router.refresh()
+      // Show email confirmation screen
+      setEmailSent(true)
     } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Email confirmation screen
+  if (emailSent) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center space-y-4">
+          <div className="mx-auto w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
+            <Mail className="h-8 w-8 text-orange-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Check your email</h2>
+          <p className="text-gray-600 max-w-sm mx-auto">
+            We sent a confirmation link to <strong>{formData.email}</strong>.
+            Click the link in the email to activate your account.
+          </p>
+          {promoCode && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-md inline-flex items-center gap-2 text-sm text-green-800">
+              <Gift className="h-4 w-4 flex-shrink-0" />
+              <span>Your Pro access will activate once you confirm your email.</span>
+            </div>
+          )}
+          <p className="text-xs text-gray-400">
+            Didn&apos;t get the email? Check your spam folder.
+          </p>
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
