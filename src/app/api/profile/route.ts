@@ -26,6 +26,29 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // Auto-downgrade expired promo subscriptions
+    if (
+      profile?.promo_expires_at &&
+      profile?.promo_code &&
+      new Date(profile.promo_expires_at) < new Date() &&
+      !profile.stripe_subscription_id // Don't downgrade paying customers
+    ) {
+      const { data: updatedProfile } = await adminClient
+        .from('profiles')
+        .update({
+          subscription_tier: 'free',
+          promo_code: null,
+          promo_expires_at: null,
+        })
+        .eq('id', user.id)
+        .select()
+        .single()
+
+      if (updatedProfile) {
+        return NextResponse.json({ profile: updatedProfile })
+      }
+    }
+
     return NextResponse.json({ profile })
   } catch (error) {
     console.error('Profile fetch error:', error)

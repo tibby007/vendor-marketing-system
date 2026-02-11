@@ -1,17 +1,28 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Gift } from 'lucide-react'
 
 export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  )
+}
+
+function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const promoCode = searchParams.get('promo')
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -57,6 +68,7 @@ export default function SignupPage() {
           data: {
             full_name: formData.fullName,
             company_name: formData.companyName,
+            promo_code: promoCode || undefined,
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -77,6 +89,15 @@ export default function SignupPage() {
             full_name: formData.fullName,
           })
           .eq('id', user.id)
+
+        // Activate promo if code was provided
+        if (promoCode) {
+          await fetch('/api/activate-promo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ promoCode }),
+          })
+        }
       }
 
       router.push('/dashboard')
@@ -98,6 +119,14 @@ export default function SignupPage() {
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
+          {promoCode && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-md flex items-center gap-2 text-sm text-green-800">
+              <Gift className="h-4 w-4 flex-shrink-0" />
+              <span>
+                <strong>Pro access included!</strong> You&apos;re signing up with a promo code — enjoy 6 months of Pro features free.
+              </span>
+            </div>
+          )}
           {error && (
             <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
               {error}
