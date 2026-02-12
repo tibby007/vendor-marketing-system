@@ -3,6 +3,11 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { Sidebar } from '@/components/layout/Sidebar'
 
+// Valid promo codes and their configurations
+const PROMO_CODES: Record<string, { tier: string; durationMonths: number }> = {
+  COHORT2026: { tier: 'pro', durationMonths: 6 },
+}
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -20,11 +25,42 @@ export default async function DashboardLayout({
 
   // Get user profile using admin client to bypass RLS
   const adminClient = createAdminClient()
-  const { data: profile } = await adminClient
+  let { data: profile } = await adminClient
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
+
+  // Check for unactivated promo code in user metadata
+  const metadata = user.user_metadata || {}
+  const metaPromoCode = metadata.promo_code?.toUpperCase()?.trim()
+
+  if (
+    metaPromoCode &&
+    PROMO_CODES[metaPromoCode] &&
+    profile &&
+    !profile.promo_code &&
+    profile.subscription_tier === 'free'
+  ) {
+    const promo = PROMO_CODES[metaPromoCode]
+    const expiresAt = new Date()
+    expiresAt.setMonth(expiresAt.getMonth() + promo.durationMonths)
+
+    const { data: activatedProfile } = await adminClient
+      .from('profiles')
+      .update({
+        subscription_tier: promo.tier,
+        promo_code: metaPromoCode,
+        promo_expires_at: expiresAt.toISOString(),
+      })
+      .eq('id', user.id)
+      .select()
+      .single()
+
+    if (activatedProfile) {
+      profile = activatedProfile
+    }
+  }
 
   const userData = {
     email: user.email || '',
