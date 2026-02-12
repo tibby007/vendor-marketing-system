@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { US_STATES, EQUIPMENT_TYPES, SUBSCRIPTION_TIERS } from '@/lib/constants'
-import { MockVendor } from '@/lib/search/mock-data'
+import { PlacesVendor } from '@/lib/google/places'
 import { useToast } from '@/hooks/use-toast'
 import {
   Search,
@@ -20,12 +20,12 @@ import {
   MapPin,
   Globe,
   Phone,
-  Mail,
   Plus,
   ExternalLink,
   Sparkles,
   AlertCircle,
   Lock,
+  MapPinned,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -34,7 +34,7 @@ export default function AIFinderPage() {
   const [state, setState] = useState('')
   const [equipmentType, setEquipmentType] = useState('')
   const [loading, setLoading] = useState(false)
-  const [results, setResults] = useState<MockVendor[]>([])
+  const [results, setResults] = useState<PlacesVendor[]>([])
   const [searchCount, setSearchCount] = useState(0)
   const [searchLimit, setSearchLimit] = useState(3)
   const [tier, setTier] = useState('free')
@@ -119,7 +119,7 @@ export default function AIFinderPage() {
     }
   }
 
-  const handleAddLead = async (vendor: MockVendor) => {
+  const handleAddLead = async (vendor: PlacesVendor) => {
     setAddingLeadId(vendor.id)
 
     try {
@@ -128,8 +128,8 @@ export default function AIFinderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           company_name: vendor.company_name,
-          contact_name: vendor.contact_name,
-          email: vendor.email,
+          contact_name: vendor.contact_name || '',
+          email: vendor.email || '',
           phone: vendor.phone,
           website: vendor.website,
           address: vendor.address,
@@ -138,6 +138,7 @@ export default function AIFinderPage() {
           zip_code: vendor.zip_code,
           equipment_types: vendor.equipment_types,
           source: 'ai_finder',
+          source_url: vendor.google_maps_url || vendor.website || '',
           status: 'new',
           notes: vendor.description,
         }),
@@ -173,16 +174,6 @@ export default function AIFinderPage() {
     } finally {
       setAddingLeadId(null)
     }
-  }
-
-  const handleEmail = (vendor: MockVendor) => {
-    const subject = encodeURIComponent(
-      `Partnership Opportunity - Equipment Financing for ${vendor.company_name}`
-    )
-    const body = encodeURIComponent(
-      `Hi ${vendor.contact_name},\n\nI came across ${vendor.company_name} and noticed you sell quality ${vendor.equipment_types[0]?.replace('_', ' ')} in the ${vendor.city} area. I work with equipment dealers to help their customers secure competitive financing options.\n\nWould you be open to a quick call to discuss how a financing partnership could help you close more sales?\n\nBest regards`
-    )
-    window.location.href = `mailto:${vendor.email}?subject=${subject}&body=${body}`
   }
 
   const remainingSearches = searchLimit === -1 ? 'Unlimited' : searchLimit - searchCount
@@ -310,7 +301,9 @@ export default function AIFinderPage() {
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="font-semibold text-lg">{vendor.company_name}</h3>
-                      <p className="text-sm text-gray-500">{vendor.contact_name}</p>
+                      {vendor.address && (
+                        <p className="text-sm text-gray-500 mt-0.5">{vendor.address}</p>
+                      )}
                     </div>
                     <Badge className="bg-green-100 text-green-700">
                       {vendor.relevance_score}% match
@@ -318,25 +311,17 @@ export default function AIFinderPage() {
                   </div>
 
                   <div className="space-y-2 text-sm mb-4">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      <MapPin className="h-4 w-4" />
-                      {vendor.city}, {vendor.state} {vendor.zip_code}
-                    </div>
                     {tier === 'free' ? (
                       <>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <MapPin className="h-4 w-4" />
+                          {vendor.city && vendor.state
+                            ? `${vendor.city}, ${vendor.state}`
+                            : vendor.state || 'Location available'}
+                        </div>
                         <div className="flex items-center gap-2 text-gray-400">
                           <Phone className="h-4 w-4" />
                           <span className="blur-sm select-none">(555) 123-4567</span>
-                          <Link href="/billing">
-                            <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 cursor-pointer ml-1">
-                              <Lock className="h-3 w-3 mr-1" />
-                              Upgrade
-                            </Badge>
-                          </Link>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-400">
-                          <Mail className="h-4 w-4" />
-                          <span className="blur-sm select-none">contact@company.com</span>
                           <Link href="/billing">
                             <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 cursor-pointer ml-1">
                               <Lock className="h-3 w-3 mr-1" />
@@ -357,37 +342,55 @@ export default function AIFinderPage() {
                       </>
                     ) : (
                       <>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Phone className="h-4 w-4" />
-                          {vendor.phone}
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Mail className="h-4 w-4" />
-                          {vendor.email}
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Globe className="h-4 w-4" />
-                          <a
-                            href={vendor.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                          >
-                            {vendor.website.replace('https://www.', '')}
-                            <ExternalLink className="inline h-3 w-3 ml-1" />
-                          </a>
-                        </div>
+                        {vendor.phone && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Phone className="h-4 w-4" />
+                            <a href={`tel:${vendor.phone}`} className="hover:text-orange-600">
+                              {vendor.phone}
+                            </a>
+                          </div>
+                        )}
+                        {vendor.website && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Globe className="h-4 w-4" />
+                            <a
+                              href={vendor.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline truncate"
+                            >
+                              {vendor.website.replace(/^https?:\/\/(www\.)?/, '')}
+                              <ExternalLink className="inline h-3 w-3 ml-1" />
+                            </a>
+                          </div>
+                        )}
+                        {vendor.google_maps_url && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <MapPinned className="h-4 w-4" />
+                            <a
+                              href={vendor.google_maps_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              View on Google Maps
+                              <ExternalLink className="inline h-3 w-3 ml-1" />
+                            </a>
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
 
-                  <div className="flex flex-wrap gap-1 mb-4">
-                    {vendor.equipment_types.map((type) => (
-                      <Badge key={type} variant="outline" className="text-xs">
-                        {EQUIPMENT_TYPES.find((e) => e.value === type)?.label || type}
-                      </Badge>
-                    ))}
-                  </div>
+                  {vendor.equipment_types.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-4">
+                      {vendor.equipment_types.map((type) => (
+                        <Badge key={type} variant="outline" className="text-xs">
+                          {EQUIPMENT_TYPES.find((e) => e.value === type)?.label || type}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
 
                   <p className="text-sm text-gray-600 mb-4">{vendor.description}</p>
 
@@ -419,14 +422,16 @@ export default function AIFinderPage() {
                             </>
                           )}
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEmail(vendor)}
-                        >
-                          <Mail className="h-4 w-4 mr-1" />
-                          Email
-                        </Button>
+                        {vendor.website && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(vendor.website, '_blank')}
+                          >
+                            <Globe className="h-4 w-4 mr-1" />
+                            Website
+                          </Button>
+                        )}
                       </>
                     )}
                   </div>

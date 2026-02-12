@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { generateMockVendors } from '@/lib/search/mock-data'
+import { searchPlaces } from '@/lib/google/places'
 import { SUBSCRIPTION_TIERS } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
@@ -72,8 +72,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate results
-    const vendors = generateMockVendors(state, equipmentType || 'any')
+    // Search Google Places for real vendors
+    let vendors
+    try {
+      vendors = await searchPlaces(state, equipmentType || 'any', 10)
+    } catch (placesError) {
+      console.error('Google Places search failed:', placesError)
+      return NextResponse.json(
+        { error: 'Search service temporarily unavailable. Please try again.' },
+        { status: 503 }
+      )
+    }
 
     // Strip contact info for free tier (server-side enforcement)
     const results = tier === 'free'
@@ -82,6 +91,7 @@ export async function POST(request: NextRequest) {
           email: '',
           phone: '',
           website: '',
+          google_maps_url: '',
         }))
       : vendors
 
