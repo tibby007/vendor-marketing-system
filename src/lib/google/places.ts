@@ -41,6 +41,7 @@ interface PlaceResult {
 
 // Map our equipment type values to search-friendly terms
 const EQUIPMENT_SEARCH_TERMS: Record<string, string> = {
+  // Construction Equipment
   skid_steers: 'skid steer',
   excavators: 'excavator',
   mini_excavators: 'mini excavator',
@@ -53,6 +54,37 @@ const EQUIPMENT_SEARCH_TERMS: Record<string, string> = {
   forklifts: 'forklift',
   dump_trucks: 'dump truck',
   concrete_equipment: 'concrete equipment',
+  // Commercial Trucks
+  semi_trucks: 'semi truck trailer dealer',
+  flatbed_trucks: 'flatbed truck',
+  box_trucks: 'box truck',
+  refrigerated_trucks: 'refrigerated truck reefer',
+  cargo_vans: 'cargo van',
+  // Specialty Trucks
+  concrete_mixer_trucks: 'concrete mixer truck',
+  lowboy_trucks: 'lowboy trailer equipment transport',
+  water_trucks: 'water truck',
+  asphalt_trucks: 'asphalt paving truck',
+  tow_trucks: 'tow truck wrecker',
+  vacuum_trucks: 'vacuum truck',
+  // Service Vehicles
+  service_body_trucks: 'service body truck',
+  utility_bucket_trucks: 'utility bucket truck',
+  plumbing_vans: 'plumbing service van',
+  electrical_vans: 'electrical service van',
+  hvac_vehicles: 'HVAC service vehicle',
+  landscaping_trucks: 'landscaping truck',
+  // Municipal & Emergency
+  street_sweepers: 'street sweeper',
+  fire_engines: 'fire engine fire truck',
+  ambulances: 'ambulance',
+  police_vehicles: 'police command vehicle',
+  snow_plows: 'snow plow truck',
+  municipal_trucks: 'municipal maintenance truck',
+  // Agricultural
+  grain_trucks: 'grain truck',
+  livestock_trucks: 'livestock truck trailer',
+  spray_trucks: 'agricultural spray truck',
 }
 
 // Map state abbreviations to full names for better search results

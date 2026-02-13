@@ -1,19 +1,80 @@
-// Equipment types from PRD
+// Equipment types grouped by category
+export const EQUIPMENT_CATEGORIES = [
+  {
+    label: 'Construction Equipment',
+    items: [
+      { value: 'skid_steers', label: 'Skid Steers' },
+      { value: 'excavators', label: 'Excavators' },
+      { value: 'mini_excavators', label: 'Mini Excavators' },
+      { value: 'compact_track_loaders', label: 'Compact Track Loaders' },
+      { value: 'wheel_loaders', label: 'Wheel Loaders' },
+      { value: 'backhoes', label: 'Backhoes' },
+      { value: 'bulldozers', label: 'Bulldozers' },
+      { value: 'telehandlers', label: 'Telehandlers' },
+      { value: 'aerial_lifts', label: 'Aerial Lifts' },
+      { value: 'forklifts', label: 'Forklifts' },
+      { value: 'dump_trucks', label: 'Dump Trucks' },
+      { value: 'concrete_equipment', label: 'Concrete Equipment' },
+    ],
+  },
+  {
+    label: 'Commercial Trucks',
+    items: [
+      { value: 'semi_trucks', label: 'Semi Trucks & Trailers' },
+      { value: 'flatbed_trucks', label: 'Flatbed Trucks' },
+      { value: 'box_trucks', label: 'Box Trucks' },
+      { value: 'refrigerated_trucks', label: 'Refrigerated Trucks' },
+      { value: 'cargo_vans', label: 'Cargo Vans' },
+    ],
+  },
+  {
+    label: 'Specialty Trucks',
+    items: [
+      { value: 'concrete_mixer_trucks', label: 'Concrete Mixer Trucks' },
+      { value: 'lowboy_trucks', label: 'Lowboy / Transport Trucks' },
+      { value: 'water_trucks', label: 'Water Trucks' },
+      { value: 'asphalt_trucks', label: 'Asphalt / Paving Trucks' },
+      { value: 'tow_trucks', label: 'Tow Trucks' },
+      { value: 'vacuum_trucks', label: 'Vacuum Trucks' },
+    ],
+  },
+  {
+    label: 'Service Vehicles',
+    items: [
+      { value: 'service_body_trucks', label: 'Service Body Trucks' },
+      { value: 'utility_bucket_trucks', label: 'Utility Bucket Trucks' },
+      { value: 'plumbing_vans', label: 'Plumbing Service Vans' },
+      { value: 'electrical_vans', label: 'Electrical Service Vans' },
+      { value: 'hvac_vehicles', label: 'HVAC Service Vehicles' },
+      { value: 'landscaping_trucks', label: 'Landscaping Trucks' },
+    ],
+  },
+  {
+    label: 'Municipal & Emergency',
+    items: [
+      { value: 'street_sweepers', label: 'Street Sweepers' },
+      { value: 'fire_engines', label: 'Fire Engines' },
+      { value: 'ambulances', label: 'Ambulances' },
+      { value: 'police_vehicles', label: 'Police Command Vehicles' },
+      { value: 'snow_plows', label: 'Snow Plow Trucks' },
+      { value: 'municipal_trucks', label: 'Municipal Maintenance Trucks' },
+    ],
+  },
+  {
+    label: 'Agricultural',
+    items: [
+      { value: 'grain_trucks', label: 'Grain Trucks' },
+      { value: 'livestock_trucks', label: 'Livestock Trucks' },
+      { value: 'spray_trucks', label: 'Agricultural Spray Trucks' },
+    ],
+  },
+]
+
+// Flat list for lookups (badge labels, etc.)
 export const EQUIPMENT_TYPES = [
   { value: 'any', label: 'Any Equipment' },
-  { value: 'skid_steers', label: 'Skid Steers' },
-  { value: 'excavators', label: 'Excavators' },
-  { value: 'mini_excavators', label: 'Mini Excavators' },
-  { value: 'compact_track_loaders', label: 'Compact Track Loaders' },
-  { value: 'wheel_loaders', label: 'Wheel Loaders' },
-  { value: 'backhoes', label: 'Backhoes' },
-  { value: 'bulldozers', label: 'Bulldozers' },
-  { value: 'telehandlers', label: 'Telehandlers' },
-  { value: 'aerial_lifts', label: 'Aerial Lifts' },
-  { value: 'forklifts', label: 'Forklifts' },
-  { value: 'dump_trucks', label: 'Dump Trucks' },
-  { value: 'concrete_equipment', label: 'Concrete Equipment' },
-] as const
+  ...EQUIPMENT_CATEGORIES.flatMap((cat) => cat.items),
+]
 
 // US States including Puerto Rico
 export const US_STATES = [

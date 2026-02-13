@@ -2,6 +2,7 @@ const CRAIGSLIST_API_URL = 'https://craigslist-data.p.rapidapi.com/search'
 
 // Map equipment types to Craigslist search terms
 const EQUIPMENT_SEARCH_TERMS: Record<string, string> = {
+  // Construction Equipment
   skid_steers: 'skid steer',
   excavators: 'excavator',
   mini_excavators: 'mini excavator',
@@ -14,6 +15,37 @@ const EQUIPMENT_SEARCH_TERMS: Record<string, string> = {
   forklifts: 'forklift',
   dump_trucks: 'dump truck',
   concrete_equipment: 'concrete mixer pump',
+  // Commercial Trucks
+  semi_trucks: 'semi truck trailer',
+  flatbed_trucks: 'flatbed truck',
+  box_trucks: 'box truck',
+  refrigerated_trucks: 'refrigerated truck reefer',
+  cargo_vans: 'cargo van',
+  // Specialty Trucks
+  concrete_mixer_trucks: 'concrete mixer truck',
+  lowboy_trucks: 'lowboy trailer',
+  water_trucks: 'water truck',
+  asphalt_trucks: 'asphalt paving truck',
+  tow_trucks: 'tow truck wrecker',
+  vacuum_trucks: 'vacuum truck',
+  // Service Vehicles
+  service_body_trucks: 'service body truck',
+  utility_bucket_trucks: 'bucket truck utility',
+  plumbing_vans: 'plumbing van',
+  electrical_vans: 'electrical van',
+  hvac_vehicles: 'HVAC van truck',
+  landscaping_trucks: 'landscaping truck',
+  // Municipal & Emergency
+  street_sweepers: 'street sweeper',
+  fire_engines: 'fire truck engine',
+  ambulances: 'ambulance',
+  police_vehicles: 'police vehicle',
+  snow_plows: 'snow plow truck',
+  municipal_trucks: 'municipal truck',
+  // Agricultural
+  grain_trucks: 'grain truck',
+  livestock_trucks: 'livestock truck trailer',
+  spray_trucks: 'spray truck agricultural',
 }
 
 // Map US state abbreviations to Craigslist city slugs

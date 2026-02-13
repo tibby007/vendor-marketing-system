@@ -7,12 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { US_STATES, EQUIPMENT_TYPES, SUBSCRIPTION_TIERS } from '@/lib/constants'
+import { US_STATES, EQUIPMENT_TYPES, EQUIPMENT_CATEGORIES, SUBSCRIPTION_TIERS } from '@/lib/constants'
 import { PlacesVendor } from '@/lib/google/places'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -236,10 +238,16 @@ export default function AIFinderPage() {
                   <SelectValue placeholder="Any equipment" />
                 </SelectTrigger>
                 <SelectContent>
-                  {EQUIPMENT_TYPES.map((e) => (
-                    <SelectItem key={e.value} value={e.value}>
-                      {e.label}
-                    </SelectItem>
+                  <SelectItem value="any">Any Equipment</SelectItem>
+                  {EQUIPMENT_CATEGORIES.map((cat) => (
+                    <SelectGroup key={cat.label}>
+                      <SelectLabel>{cat.label}</SelectLabel>
+                      {cat.items.map((e) => (
+                        <SelectItem key={e.value} value={e.value}>
+                          {e.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
                 </SelectContent>
               </Select>

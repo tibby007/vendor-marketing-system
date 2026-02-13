@@ -8,7 +8,9 @@ import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel as SelectGroupLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -31,7 +33,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { EQUIPMENT_TYPES, US_STATES } from '@/lib/constants'
+import { EQUIPMENT_TYPES, EQUIPMENT_CATEGORIES, US_STATES } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
@@ -354,10 +356,16 @@ export default function SmartSearchPage() {
                           <SelectValue placeholder="Any Equipment" />
                         </SelectTrigger>
                         <SelectContent>
-                          {EQUIPMENT_TYPES.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
+                          <SelectItem value="any">Any Equipment</SelectItem>
+                          {EQUIPMENT_CATEGORIES.map((cat) => (
+                            <SelectGroup key={cat.label}>
+                              <SelectGroupLabel>{cat.label}</SelectGroupLabel>
+                              {cat.items.map((e) => (
+                                <SelectItem key={e.value} value={e.value}>
+                                  {e.label}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
                           ))}
                         </SelectContent>
                       </Select>
