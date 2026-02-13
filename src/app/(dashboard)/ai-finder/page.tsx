@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -32,6 +33,7 @@ import Link from 'next/link'
 export default function AIFinderPage() {
   const { toast } = useToast()
   const [state, setState] = useState('')
+  const [city, setCity] = useState('')
   const [equipmentType, setEquipmentType] = useState('')
   const [loading, setLoading] = useState(false)
   const [results, setResults] = useState<PlacesVendor[]>([])
@@ -81,7 +83,7 @@ export default function AIFinderPage() {
       const response = await fetch('/api/ai-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state, equipmentType }),
+        body: JSON.stringify({ state, city, equipmentType }),
       })
 
       const data = await response.json()
@@ -200,7 +202,7 @@ export default function AIFinderPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">State *</label>
               <Select value={state} onValueChange={setState}>
@@ -215,6 +217,16 @@ export default function AIFinderPage() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">City</label>
+              <Input
+                placeholder="e.g., Dallas, Miami..."
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              />
             </div>
 
             <div className="space-y-2">

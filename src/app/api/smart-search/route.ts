@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { query, equipmentType, state, platforms } = body
+    const { query, equipmentType, state, city, platforms } = body
 
     if (!query && (!equipmentType || equipmentType === 'any') && !state) {
       return NextResponse.json(
@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
       const equipLabel = EQUIPMENT_TYPES.find((e) => e.value === equipmentType)?.label
       if (equipLabel) redditParts.push(equipLabel)
     }
+    if (city) redditParts.push(city)
     if (state) redditParts.push(state)
     if (!redditParts.some((p) => /equipment|dealer|vendor|sale/i.test(p))) {
       redditParts.push('dealer OR vendor OR sale')
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
         ? searchReddit(redditQuery, { sort: 'relevance', time: 'year', limit: 25 })
         : Promise.resolve(null),
       enabledPlatforms.includes('craigslist')
-        ? searchCraigslist(query || '', { equipmentType, state: state || undefined })
+        ? searchCraigslist(query || '', { equipmentType, state: state || undefined, city: city || undefined })
         : Promise.resolve(null),
     ])
 

@@ -66,6 +66,7 @@ export default function SmartSearchPage() {
   const [query, setQuery] = useState('')
   const [equipmentType, setEquipmentType] = useState('any')
   const [state, setState] = useState('')
+  const [city, setCity] = useState('')
   const [activeTab, setActiveTab] = useState<ActiveTab>('all')
   const [redditResults, setRedditResults] = useState<RedditPost[]>([])
   const [craigslistResults, setCraigslistResults] = useState<CraigslistListing[]>([])
@@ -116,7 +117,7 @@ export default function SmartSearchPage() {
       const response = await fetch('/api/smart-search', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, equipmentType, state }),
+        body: JSON.stringify({ query, equipmentType, state, city }),
       })
 
       if (!response.ok) {
@@ -334,7 +335,7 @@ export default function SmartSearchPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid gap-4 md:grid-cols-4">
+                  <div className="grid gap-4 md:grid-cols-5">
                     <div className="md:col-span-2 space-y-2">
                       <Label htmlFor="query">Search Query</Label>
                       <Input
@@ -377,6 +378,16 @@ export default function SmartSearchPage() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>City</Label>
+                      <Input
+                        placeholder="e.g., Dallas..."
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      />
                     </div>
                   </div>
 
@@ -504,7 +515,7 @@ export default function SmartSearchPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 md:grid-cols-5">
                   <div className="md:col-span-2 space-y-2">
                     <Label htmlFor="query">Search Query</Label>
                     <Input
@@ -548,6 +559,16 @@ export default function SmartSearchPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>City</Label>
+                    <Input
+                      placeholder="e.g., Dallas..."
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    />
+                  </div>
                 </div>
 
                 <div className="mt-4 flex gap-2">
@@ -569,13 +590,14 @@ export default function SmartSearchPage() {
                     )}
                   </Button>
 
-                  {(query || equipmentType !== 'any' || state) && (
+                  {(query || equipmentType !== 'any' || state || city) && (
                     <Button
                       variant="outline"
                       onClick={() => {
                         setQuery('')
                         setEquipmentType('any')
                         setState('')
+                        setCity('')
                         setRedditResults([])
                         setCraigslistResults([])
                         setSearchMeta(null)

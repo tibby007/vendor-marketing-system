@@ -91,6 +91,7 @@ export async function searchCraigslist(
   options?: {
     equipmentType?: string
     state?: string
+    city?: string
     category?: string
   }
 ): Promise<CraigslistSearchResult> {
@@ -116,10 +117,12 @@ export async function searchCraigslist(
 
   const searchQuery = searchParts.join(' ') || 'heavy equipment'
 
-  // Determine Craigslist region
-  const region = options?.state
-    ? STATE_TO_CRAIGSLIST_CITY[options.state] || 'newyork'
-    : 'newyork'
+  // Determine Craigslist region — prefer user-provided city over state default
+  const region = options?.city
+    ? options.city.toLowerCase().replace(/\s+/g, '')
+    : options?.state
+      ? STATE_TO_CRAIGSLIST_CITY[options.state] || 'newyork'
+      : 'newyork'
 
   // Use heavy equipment category by default
   const category = options?.category || 'hva'

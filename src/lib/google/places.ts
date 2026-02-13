@@ -94,7 +94,8 @@ function extractStateAbbreviation(
 export async function searchPlaces(
   stateCode: string,
   equipmentType: string,
-  maxResults: number = 10
+  maxResults: number = 10,
+  city?: string
 ): Promise<PlacesVendor[]> {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY
   if (!apiKey) {
@@ -107,7 +108,8 @@ export async function searchPlaces(
       ? EQUIPMENT_SEARCH_TERMS[equipmentType] || equipmentType.replace(/_/g, ' ')
       : 'heavy equipment'
 
-  const textQuery = `${equipmentTerm} dealer in ${stateName}`
+  const location = city ? `${city}, ${stateName}` : stateName
+  const textQuery = `${equipmentTerm} dealer in ${location}`
 
   const response = await fetch(PLACES_API_URL, {
     method: 'POST',

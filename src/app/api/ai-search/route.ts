@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Validate input
     const body = await request.json()
-    const { state, equipmentType } = body
+    const { state, city, equipmentType } = body
 
     if (!state) {
       return NextResponse.json(
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Search Google Places for real vendors
     let vendors
     try {
-      vendors = await searchPlaces(state, equipmentType || 'any', 10)
+      vendors = await searchPlaces(state, equipmentType || 'any', 10, city || undefined)
     } catch (placesError) {
       console.error('Google Places search failed:', placesError)
       return NextResponse.json(
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     await adminClient.from('search_history').insert({
       user_id: user.id,
       search_type: 'ai_finder',
-      criteria: { state, equipmentType },
+      criteria: { state, city, equipmentType },
       results_count: vendors.length,
     })
 
