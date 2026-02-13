@@ -29,6 +29,9 @@ import {
   AlertCircle,
   Lock,
   MapPinned,
+  Mail,
+  User,
+  FileText,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -144,7 +147,9 @@ export default function AIFinderPage() {
           source: 'ai_finder',
           source_url: vendor.google_maps_url || vendor.website || '',
           status: 'new',
-          notes: vendor.description,
+          notes: vendor.contact_form_url
+            ? `${vendor.description}\n\nContact form: ${vendor.contact_form_url}`
+            : vendor.description,
         }),
       })
 
@@ -362,6 +367,34 @@ export default function AIFinderPage() {
                       </>
                     ) : (
                       <>
+                        {vendor.contact_name && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <User className="h-4 w-4" />
+                            <span className="font-medium">{vendor.contact_name}</span>
+                          </div>
+                        )}
+                        {vendor.email && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <Mail className="h-4 w-4" />
+                            <a href={`mailto:${vendor.email}`} className="text-blue-600 hover:underline">
+                              {vendor.email}
+                            </a>
+                          </div>
+                        )}
+                        {!vendor.email && vendor.contact_form_url && (
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <FileText className="h-4 w-4" />
+                            <a
+                              href={vendor.contact_form_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              Contact Form
+                              <ExternalLink className="inline h-3 w-3 ml-1" />
+                            </a>
+                          </div>
+                        )}
                         {vendor.phone && (
                           <div className="flex items-center gap-2 text-gray-600">
                             <Phone className="h-4 w-4" />
@@ -442,6 +475,25 @@ export default function AIFinderPage() {
                             </>
                           )}
                         </Button>
+                        {vendor.email ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(`mailto:${vendor.email}`, '_blank')}
+                          >
+                            <Mail className="h-4 w-4 mr-1" />
+                            Email
+                          </Button>
+                        ) : vendor.contact_form_url ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(vendor.contact_form_url, '_blank')}
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            Contact
+                          </Button>
+                        ) : null}
                         {vendor.website && (
                           <Button
                             size="sm"

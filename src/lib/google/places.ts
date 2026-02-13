@@ -19,6 +19,7 @@ export interface PlacesVendor {
   source: 'ai_finder' | 'smart_search'
   relevance_score: number
   google_maps_url: string
+  contact_form_url: string
 }
 
 interface PlaceResult {
@@ -205,6 +206,7 @@ export async function searchPlaces(
       source: 'ai_finder' as const,
       relevance_score: Math.max(95 - index * 3, 70), // Rank by Google's order
       google_maps_url: place.googleMapsUri || '',
+      contact_form_url: '',
     }
   })
 }

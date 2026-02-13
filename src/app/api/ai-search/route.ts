@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { searchPlaces } from '@/lib/google/places'
+import { enrichVendorsWithContactInfo } from '@/lib/enrichment/contact-scraper'
 import { SUBSCRIPTION_TIERS } from '@/lib/constants'
 
 export async function POST(request: NextRequest) {
@@ -84,16 +85,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Enrich vendors with contact info scraped from their websites
+    // Only enrich for paid tiers (free tier won't see contact info anyway)
+    const enrichedVendors = tier === 'free'
+      ? vendors
+      : await enrichVendorsWithContactInfo(vendors)
+
     // Strip contact info for free tier (server-side enforcement)
     const results = tier === 'free'
       ? vendors.map((v) => ({
           ...v,
           email: '',
+          contact_name: '',
           phone: '',
           website: '',
           google_maps_url: '',
         }))
-      : vendors
+      : enrichedVendors
 
     // Atomically increment search count using the DB function
     const { data: newCount, error: incrementError } = await adminClient.rpc(
