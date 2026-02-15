@@ -19,11 +19,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { MoreHorizontal, Mail, Edit, Trash2, Eye, ExternalLink } from 'lucide-react'
+import { MoreHorizontal, Mail, Edit, Trash2, Eye, ExternalLink, CalendarClock } from 'lucide-react'
 import { LEAD_STATUSES } from '@/lib/constants'
 import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import { EditLeadDialog } from './EditLeadDialog'
 import { EmailModal } from './EmailModal'
+import { EnrollCadenceDialog } from '@/components/cadence/EnrollCadenceDialog'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
 
@@ -37,6 +38,7 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
   const [editingLead, setEditingLead] = useState<Lead | null>(null)
   const [emailingLead, setEmailingLead] = useState<Lead | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [cadenceLead, setCadenceLead] = useState<Lead | null>(null)
 
   const getStatusBadge = (lead: Lead) => {
     const status = lead.status
@@ -251,8 +253,8 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => console.log('Start Cadence for lead:', lead.id)}>
-                        <Mail className="mr-2 h-4 w-4" />
+                      <DropdownMenuItem onClick={() => setCadenceLead(lead)}>
+                        <CalendarClock className="mr-2 h-4 w-4" />
                         Start Cadence
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -332,6 +334,18 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
           open={!!emailingLead}
           onOpenChange={(open) => !open && setEmailingLead(null)}
           lead={emailingLead}
+        />
+      )}
+
+      {cadenceLead && (
+        <EnrollCadenceDialog
+          lead={cadenceLead}
+          open={!!cadenceLead}
+          onClose={() => setCadenceLead(null)}
+          onEnrolled={() => {
+            setCadenceLead(null)
+            onUpdate()
+          }}
         />
       )}
     </>
