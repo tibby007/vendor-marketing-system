@@ -24,6 +24,21 @@ export interface ContactInfo {
   email: string
   contactName: string
   contactFormUrl: string
+  offersFinancing: boolean | null
+}
+
+// Detect if a dealer's website mentions financing/credit services
+const FINANCING_KEYWORDS = [
+  'financing available', 'finance application', 'apply for credit',
+  'apply for financing', 'payment calculator', 'monthly payments',
+  'lease options', 'credit application', 'financing options',
+  'finance your', 'get pre-approved', 'pre-qualification',
+  'equipment financing', 'loan application', 'finance department',
+]
+
+function detectFinancingOnWebsite(html: string): boolean {
+  const lower = html.toLowerCase()
+  return FINANCING_KEYWORDS.some((keyword) => lower.includes(keyword))
 }
 
 async function fetchWithTimeout(url: string, timeout: number): Promise<string> {
@@ -203,6 +218,7 @@ export async function scrapeContactInfo(
     let emails = extractEmails(html)
     let contactName = extractContactName(html)
     let contactFormUrl = ''
+    const offersFinancing = detectFinancingOnWebsite(html)
 
     // If no personal email found, try contact/about pages
     if (!emails.some(isPersonalEmail)) {
@@ -241,9 +257,10 @@ export async function scrapeContactInfo(
       email: pickBestEmail(emails),
       contactName,
       contactFormUrl: emails.length === 0 ? contactFormUrl : '',
+      offersFinancing,
     }
   } catch {
-    return { email: '', contactName: '', contactFormUrl: '' }
+    return { email: '', contactName: '', contactFormUrl: '', offersFinancing: null }
   }
 }
 
@@ -271,6 +288,7 @@ export async function enrichVendorsWithContactInfo<
     email: string
     contact_name: string
     contact_form_url?: string
+    offers_financing_on_website?: boolean | null
   },
 >(vendors: T[]): Promise<T[]> {
   const tasks = vendors.map((vendor) => async () => {
@@ -284,6 +302,7 @@ export async function enrichVendorsWithContactInfo<
         email: contactInfo.email || vendor.email,
         contact_name: contactInfo.contactName || vendor.contact_name,
         contact_form_url: contactInfo.contactFormUrl || '',
+        offers_financing_on_website: contactInfo.offersFinancing,
       }
     } catch {
       return vendor

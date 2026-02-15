@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { CADENCE_ANGLES, CADENCE_DAYS } from '@/lib/constants'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +13,10 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -29,6 +33,9 @@ interface EmailTemplate {
   subject: string
   body: string
   category: string | null
+  angle: string | null
+  cadence_step: number | null
+  cadence_day: number | null
 }
 
 interface Lead {
@@ -60,6 +67,7 @@ export function EmailModal({ open, onOpenChange, lead }: EmailModalProps) {
         const { data, error } = await supabase
           .from('email_templates')
           .select('*')
+          .order('cadence_step', { ascending: true })
           .order('created_at')
 
         if (error) throw error
@@ -80,6 +88,23 @@ export function EmailModal({ open, onOpenChange, lead }: EmailModalProps) {
     }
   }, [open, toast])
 
+  // Group templates: non-cadence first, then by angle
+  const groupedTemplates = useMemo(() => {
+    const nonCadence = templates.filter((t) => t.category !== 'cadence')
+    const cadenceByAngle: Record<string, EmailTemplate[]> = {}
+
+    for (const angle of CADENCE_ANGLES) {
+      const angleTemplates = templates
+        .filter((t) => t.category === 'cadence' && t.angle === angle.value)
+        .sort((a, b) => (a.cadence_step || 0) - (b.cadence_step || 0))
+      if (angleTemplates.length > 0) {
+        cadenceByAngle[angle.value] = angleTemplates
+      }
+    }
+
+    return { nonCadence, cadenceByAngle }
+  }, [templates])
+
   // Replace merge fields in text
   const replaceMergeFields = (text: string): string => {
     const equipmentType = lead.equipment_types?.[0]?.replace(/_/g, ' ') || 'equipment'
@@ -88,6 +113,12 @@ export function EmailModal({ open, onOpenChange, lead }: EmailModalProps) {
       .replace(/\{\{company_name\}\}/g, lead.company_name || 'your company')
       .replace(/\{\{contact_name\}\}/g, lead.contact_name || 'there')
       .replace(/\{\{equipment_type\}\}/g, equipmentType)
+  }
+
+  // Get step label for cadence templates
+  const getStepLabel = (step: number | null): string => {
+    if (!step) return ''
+    return CADENCE_DAYS[step]?.label || `Step ${step}`
   }
 
   // Handle template selection
@@ -145,7 +176,7 @@ export function EmailModal({ open, onOpenChange, lead }: EmailModalProps) {
               />
             </div>
 
-            {/* Template Selector */}
+            {/* Template Selector with groups */}
             <div className="space-y-2">
               <Label>Template</Label>
               <Select value={selectedTemplateId} onValueChange={handleTemplateChange}>
@@ -153,11 +184,35 @@ export function EmailModal({ open, onOpenChange, lead }: EmailModalProps) {
                   <SelectValue placeholder="Select a template..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {templates.map((template) => (
-                    <SelectItem key={template.id} value={template.id}>
-                      {template.name}
-                    </SelectItem>
-                  ))}
+                  {/* Non-cadence templates */}
+                  {groupedTemplates.nonCadence.length > 0 && (
+                    <SelectGroup>
+                      <SelectLabel>General Templates</SelectLabel>
+                      {groupedTemplates.nonCadence.map((template) => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
+
+                  {/* Cadence templates grouped by angle */}
+                  {Object.entries(groupedTemplates.cadenceByAngle).map(([angle, angleTemplates], idx) => {
+                    const angleInfo = CADENCE_ANGLES.find((a) => a.value === angle)
+                    return (
+                      <SelectGroup key={angle}>
+                        {(groupedTemplates.nonCadence.length > 0 || idx > 0) && (
+                          <SelectSeparator />
+                        )}
+                        <SelectLabel>{angleInfo?.label || `Angle ${angle}`}</SelectLabel>
+                        {angleTemplates.map((template) => (
+                          <SelectItem key={template.id} value={template.id}>
+                            Angle {angle} — {getStepLabel(template.cadence_step)}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>

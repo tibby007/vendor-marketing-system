@@ -32,9 +32,9 @@ export default async function DashboardPage() {
 
   const stats = {
     totalLeads: leads?.length || 0,
-    newLeads: leads?.filter((l) => l.status === 'new').length || 0,
-    converted: leads?.filter((l) => l.status === 'converted').length || 0,
-    followUps: leads?.filter((l) => l.status === 'follow_up').length || 0,
+    newLeads: leads?.filter((l) => l.status === 'new_lead').length || 0,
+    activated: leads?.filter((l) => l.status === 'activated').length || 0,
+    replied: leads?.filter((l) => l.status === 'replied').length || 0,
   }
 
   const searchesUsed = (profile as { searches_this_month: number } | null)?.searches_this_month || 0
@@ -74,14 +74,14 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Converted</CardTitle>
+            <CardTitle className="text-sm font-medium">Activated</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.converted}</div>
+            <div className="text-2xl font-bold text-green-600">{stats.activated}</div>
             <p className="text-xs text-gray-500">
               {stats.totalLeads > 0
-                ? `${Math.round((stats.converted / stats.totalLeads) * 100)}% conversion rate`
+                ? `${Math.round((stats.activated / stats.totalLeads) * 100)}% activation rate`
                 : 'No leads yet'}
             </p>
           </CardContent>
@@ -89,13 +89,13 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Follow-ups</CardTitle>
-            <Calendar className="h-4 w-4 text-orange-500" />
+            <CardTitle className="text-sm font-medium">Replied</CardTitle>
+            <Calendar className="h-4 w-4 text-purple-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{stats.followUps}</div>
+            <div className="text-2xl font-bold text-purple-600">{stats.replied}</div>
             <p className="text-xs text-gray-500">
-              Pending follow-ups
+              Engaged leads
             </p>
           </CardContent>
         </Card>

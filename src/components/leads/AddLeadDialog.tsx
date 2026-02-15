@@ -45,7 +45,7 @@ export function AddLeadDialog({ open, onClose, onSave }: AddLeadDialogProps) {
     state: '',
     zip_code: '',
     equipment_types: [] as string[],
-    status: 'new',
+    status: 'new_lead',
     notes: '',
   })
 
@@ -117,7 +117,7 @@ export function AddLeadDialog({ open, onClose, onSave }: AddLeadDialogProps) {
         state: '',
         zip_code: '',
         equipment_types: [],
-        status: 'new',
+        status: 'new_lead',
         notes: '',
       })
 

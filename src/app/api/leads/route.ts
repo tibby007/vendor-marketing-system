@@ -77,8 +77,11 @@ export async function POST(request: NextRequest) {
         equipment_types: body.equipment_types || null,
         source: body.source || 'manual',
         source_url: body.source_url || null,
-        status: body.status || 'new',
+        status: body.status || 'new_lead',
         notes: body.notes || null,
+        angle_used: body.angle_used || null,
+        has_existing_finance_partner: body.has_existing_finance_partner || 'unknown',
+        offers_financing_on_website: body.offers_financing_on_website || null,
       })
       .select()
       .single()

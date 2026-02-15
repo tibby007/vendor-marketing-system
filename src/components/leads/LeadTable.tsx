@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal, Mail, Edit, Trash2, Eye, ExternalLink } from 'lucide-react'
 import { LEAD_STATUSES } from '@/lib/constants'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, differenceInDays } from 'date-fns'
 import { EditLeadDialog } from './EditLeadDialog'
 import { EmailModal } from './EmailModal'
 import { createClient } from '@/lib/supabase/client'
@@ -38,8 +38,22 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
   const [emailingLead, setEmailingLead] = useState<Lead | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (lead: Lead) => {
+    const status = lead.status
     const statusConfig = LEAD_STATUSES.find((s) => s.value === status)
+
+    // Check if lead is stale (contacted but no update in 14+ days)
+    const isStale = status === 'contacted' && lead.updated_at &&
+      differenceInDays(new Date(), new Date(lead.updated_at)) >= 14
+
+    if (isStale) {
+      return (
+        <Badge className="bg-amber-100 text-amber-800">
+          Stale
+        </Badge>
+      )
+    }
+
     return (
       <Badge className={statusConfig?.color || 'bg-gray-100 text-gray-800'}>
         {statusConfig?.label || status}
@@ -197,7 +211,7 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
                     )}
                   </div>
                 </TableCell>
-                <TableCell>{getStatusBadge(lead.status)}</TableCell>
+                <TableCell>{getStatusBadge(lead)}</TableCell>
                 <TableCell className="text-sm text-gray-500">
                   {formatDistanceToNow(new Date(lead.created_at), {
                     addSuffix: true,
@@ -237,13 +251,17 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
                         <Edit className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => console.log('Start Cadence for lead:', lead.id)}>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Start Cadence
+                      </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
-                        className="text-gray-500"
-                        disabled={lead.status === 'new'}
-                        onClick={() => handleStatusChange(lead, 'new')}
+                        className="text-blue-600"
+                        disabled={lead.status === 'new_lead'}
+                        onClick={() => handleStatusChange(lead, 'new_lead')}
                       >
-                        Mark as New
+                        Mark as New Lead
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-yellow-600"
@@ -253,18 +271,32 @@ export function LeadTable({ leads, onUpdate }: LeadTableProps) {
                         Mark as Contacted
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="text-orange-600"
-                        disabled={lead.status === 'follow_up'}
-                        onClick={() => handleStatusChange(lead, 'follow_up')}
+                        className="text-purple-600"
+                        disabled={lead.status === 'replied'}
+                        onClick={() => handleStatusChange(lead, 'replied')}
                       >
-                        Mark as Follow Up
+                        Mark as Replied
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-indigo-600"
+                        disabled={lead.status === 'call_booked'}
+                        onClick={() => handleStatusChange(lead, 'call_booked')}
+                      >
+                        Mark as Call Booked
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-green-600"
-                        disabled={lead.status === 'converted'}
-                        onClick={() => handleStatusChange(lead, 'converted')}
+                        disabled={lead.status === 'activated'}
+                        onClick={() => handleStatusChange(lead, 'activated')}
                       >
-                        Mark as Converted
+                        Mark as Activated
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-gray-600"
+                        disabled={lead.status === 'dead'}
+                        onClick={() => handleStatusChange(lead, 'dead')}
+                      >
+                        Mark as Dead / Not Fit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem

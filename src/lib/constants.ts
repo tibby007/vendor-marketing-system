@@ -131,14 +131,54 @@ export const US_STATES = [
   { value: 'WY', label: 'Wyoming' },
 ] as const
 
-// Lead statuses
+// Lead pipeline stages
 export const LEAD_STATUSES = [
-  { value: 'new', label: 'New', color: 'bg-blue-100 text-blue-800' },
+  { value: 'new_lead', label: 'New Lead', color: 'bg-blue-100 text-blue-800' },
   { value: 'contacted', label: 'Contacted', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'follow_up', label: 'Follow Up', color: 'bg-orange-100 text-orange-800' },
-  { value: 'converted', label: 'Converted', color: 'bg-green-100 text-green-800' },
-  { value: 'not_interested', label: 'Not Interested', color: 'bg-gray-100 text-gray-800' },
+  { value: 'replied', label: 'Replied', color: 'bg-purple-100 text-purple-800' },
+  { value: 'call_booked', label: 'Call Booked', color: 'bg-indigo-100 text-indigo-800' },
+  { value: 'activated', label: 'Activated', color: 'bg-green-100 text-green-800' },
+  { value: 'dead', label: 'Dead / Not Fit', color: 'bg-gray-100 text-gray-800' },
 ] as const
+
+// Cadence angles for A/B/C outreach testing
+export const CADENCE_ANGLES = [
+  {
+    value: 'A' as const,
+    label: 'Angle A: Close-Rate Lift',
+    description: 'Your buyers want your equipment. They just can\'t pay cash. We fix that.',
+    theme: 'bg-blue-50 border-blue-200',
+  },
+  {
+    value: 'B' as const,
+    label: 'Angle B: Speed / Friction',
+    description: 'We get your customers funded in hours, not weeks. No chasing banks.',
+    theme: 'bg-green-50 border-green-200',
+  },
+  {
+    value: 'C' as const,
+    label: 'Angle C: Stop Losing Deals',
+    description: 'How many deals walked last month because financing fell through?',
+    theme: 'bg-orange-50 border-orange-200',
+  },
+] as const
+
+// Cadence step schedule: step number → days after enrollment
+export const CADENCE_DAYS: Record<number, { day: number; label: string }> = {
+  1: { day: 1, label: 'Day 1 — Intro' },
+  2: { day: 3, label: 'Day 3 — Follow-up Question' },
+  3: { day: 7, label: 'Day 7 — Pilot Offer' },
+  4: { day: 14, label: 'Day 14 — Breakup' },
+}
+
+// Default weekly scoreboard targets
+export const SCOREBOARD_DEFAULTS = {
+  weekly_leads_found: 20,
+  weekly_emails_sent: 30,
+  weekly_replies: 5,
+  weekly_calls_booked: 3,
+  weekly_deals_activated: 1,
+} as const
 
 // Subscription tiers
 export const SUBSCRIPTION_TIERS = {

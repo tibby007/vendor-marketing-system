@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Lead } from '@/types/database'
+import { Lead, CadenceAngle, FinancePartnerStatus } from '@/types/database'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
@@ -55,6 +56,8 @@ export function EditLeadDialog({
     status: lead.status,
     follow_up_date: lead.follow_up_date || '',
     notes: lead.notes || '',
+    angle_used: lead.angle_used || null,
+    has_existing_finance_partner: lead.has_existing_finance_partner || 'unknown',
   })
 
   useEffect(() => {
@@ -72,6 +75,8 @@ export function EditLeadDialog({
       status: lead.status,
       follow_up_date: lead.follow_up_date || '',
       notes: lead.notes || '',
+      angle_used: lead.angle_used || null,
+      has_existing_finance_partner: lead.has_existing_finance_partner || 'unknown',
     })
   }, [lead])
 
@@ -120,6 +125,8 @@ export function EditLeadDialog({
           status: formData.status,
           follow_up_date: formData.follow_up_date || null,
           notes: formData.notes || null,
+          angle_used: formData.angle_used || null,
+          has_existing_finance_partner: formData.has_existing_finance_partner as FinancePartnerStatus,
         })
         .eq('id', lead.id)
 
@@ -169,6 +176,16 @@ export function EditLeadDialog({
                     : lead.source_url}
                   <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" />
                 </a>
+              </div>
+            )}
+
+            {/* Offers Financing Badge */}
+            {lead.offers_financing_on_website && (
+              <div className="rounded-md border border-green-200 bg-green-50 p-3">
+                <Label className="text-xs text-green-700 mb-1 block">Website Info</Label>
+                <Badge className="bg-green-100 text-green-800">
+                  Offers Financing on Website
+                </Badge>
               </div>
             )}
 
@@ -362,6 +379,53 @@ export function EditLeadDialog({
                   value={formData.follow_up_date}
                   onChange={handleChange}
                 />
+              </div>
+            </div>
+
+            {/* Cadence Angle & Finance Partner */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="angle_used">Cadence Angle Used</Label>
+                <Select
+                  value={formData.angle_used || 'none'}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      angle_used: value === 'none' ? null : value as CadenceAngle
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="A">Angle A - Close-Rate Lift</SelectItem>
+                    <SelectItem value="B">Angle B - Speed / Friction</SelectItem>
+                    <SelectItem value="C">Angle C - Stop Losing Deals</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="has_existing_finance_partner">Has Finance Partner?</Label>
+                <Select
+                  value={formData.has_existing_finance_partner}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      has_existing_finance_partner: value as FinancePartnerStatus
+                    }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unknown">Unknown</SelectItem>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

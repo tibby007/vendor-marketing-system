@@ -32,6 +32,7 @@ import {
   Mail,
   User,
   FileText,
+  DollarSign,
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -146,7 +147,8 @@ export default function AIFinderPage() {
           equipment_types: vendor.equipment_types,
           source: 'ai_finder',
           source_url: vendor.google_maps_url || vendor.website || '',
-          status: 'new',
+          status: 'new_lead',
+          offers_financing_on_website: vendor.offers_financing_on_website,
           notes: vendor.contact_form_url
             ? `${vendor.description}\n\nContact form: ${vendor.contact_form_url}`
             : vendor.description,
@@ -330,9 +332,20 @@ export default function AIFinderPage() {
                         <p className="text-sm text-gray-500 mt-0.5">{vendor.address}</p>
                       )}
                     </div>
-                    <Badge className="bg-green-100 text-green-700">
-                      {vendor.relevance_score}% match
-                    </Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge className="bg-green-100 text-green-700">
+                        {vendor.relevance_score}% match
+                      </Badge>
+                      {vendor.offers_financing_on_website !== null && (
+                        <Badge className={vendor.offers_financing_on_website
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-amber-100 text-amber-700'
+                        }>
+                          <DollarSign className="h-3 w-3 mr-0.5" />
+                          {vendor.offers_financing_on_website ? 'Has Financing' : 'No Financing'}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-2 text-sm mb-4">

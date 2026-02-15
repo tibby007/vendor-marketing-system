@@ -8,7 +8,9 @@ import {
   Search,
   Radar,
   Users,
+  Send,
   FileText,
+  BarChart3,
   Settings,
   CreditCard,
   LogOut,
@@ -27,7 +29,9 @@ const navigation = [
   { name: 'AI Lead Finder', href: '/ai-finder', icon: Search },
   { name: 'Smart Search', href: '/smart-search', icon: Radar },
   { name: 'My Leads', href: '/my-leads', icon: Users },
+  { name: 'Outreach', href: '/outreach', icon: Send },
   { name: 'Email Templates', href: '/templates', icon: FileText },
+  { name: 'Scoreboard', href: '/scoreboard', icon: BarChart3 },
 ]
 
 const bottomNavigation = [
