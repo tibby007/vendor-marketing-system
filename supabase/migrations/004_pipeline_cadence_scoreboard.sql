@@ -192,6 +192,9 @@ CREATE POLICY "Users can update own targets"
 -- STEP 9: DB FUNCTIONS
 -- =============================================
 
+-- Drop old function first (return type changed, can't use CREATE OR REPLACE)
+DROP FUNCTION IF EXISTS public.get_lead_stats(uuid);
+
 -- Updated lead stats with new pipeline stages + stale count
 CREATE OR REPLACE FUNCTION public.get_lead_stats(p_user_id UUID)
 RETURNS TABLE (
