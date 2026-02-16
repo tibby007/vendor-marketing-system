@@ -90,8 +90,9 @@ export default function MarketingLayout({
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t text-center text-sm text-gray-500">
+          <div className="mt-8 pt-8 border-t flex items-center justify-between text-sm text-gray-500">
             <p>&copy; {new Date().getFullYear()} VendorFinder. All rights reserved.</p>
+            <a href="https://www.vendorhubos.com/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-900">Vendor Portal Login</a>
           </div>
         </div>
       </footer>
